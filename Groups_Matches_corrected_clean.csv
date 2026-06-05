@@ -1,0 +1,73 @@
+﻿group,home_team,away_team
+A,Mexico,South Africa
+A,South Korea,Czech Republic
+A,Czech Republic,South Africa
+A,Mexico,South Korea
+A,South Africa,South Korea
+A,Czech Republic,Mexico
+B,Canada,Bosnia and Herzegovina
+B,Qatar,Switzerland
+B,Switzerland,Bosnia and Herzegovina
+B,Canada,Qatar
+B,Switzerland,Canada
+B,Bosnia and Herzegovina,Qatar
+C,Brazil,Morocco
+C,Haiti,Scotland
+C,Brazil,Haiti
+C,Scotland,Morocco
+C,Morocco,Haiti
+C,Scotland,Brazil
+D,United States,Paraguay
+D,Australia,Turkey
+D,United States,Australia
+D,Turkey,Paraguay
+D,Turkey,United States
+D,Paraguay,Australia
+E,Germany,Curaçao
+E,Ivory Coast,Ecuador
+E,Germany,Ivory Coast
+E,Ecuador,Curaçao
+E,Curaçao,Ivory Coast
+E,Ecuador,Germany
+F,Netherlands,Japan
+F,Sweden,Tunisia
+F,Netherlands,Sweden
+F,Tunisia,Japan
+F,Tunisia,Netherlands
+F,Japan,Sweden
+G,Belgium,Egypt
+G,Iran,New Zealand
+G,Belgium,Iran
+G,New Zealand,Egypt
+G,New Zealand,Belgium
+G,Egypt,Iran
+H,Saudi Arabia,Uruguay
+H,Spain,Cape Verde
+H,Uruguay,Cape Verde
+H,Spain,Saudi Arabia
+H,Cape Verde,Saudi Arabia
+H,Uruguay,Spain
+I,France,Senegal
+I,Iraq,Norway
+I,France,Iraq
+I,Norway,Senegal
+I,Norway,France
+I,Senegal,Iraq
+J,Argentina,Algeria
+J,Austria,Jordan
+J,Jordan,Algeria
+J,Argentina,Austria
+J,Algeria,Austria
+J,Jordan,Argentina
+K,Portugal,DR Congo
+K,Uzbekistan,Colombia
+K,Portugal,Uzbekistan
+K,Colombia,DR Congo
+K,Colombia,Portugal
+K,DR Congo,Uzbekistan
+L,England,Croatia
+L,Ghana,Panama
+L,England,Ghana
+L,Croatia,Panama
+L,Panama,England
+L,Croatia,Ghana

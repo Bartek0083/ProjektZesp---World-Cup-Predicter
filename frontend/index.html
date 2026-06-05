@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>World Cup Predictor</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <img src="/static/assets/pitch.svg" alt="" class="brand-mark" />
+          <div>
+            <h1>World Cup Predictor</h1>
+            <p id="statusText">Ladowanie modelu</p>
+          </div>
+        </div>
+        <nav class="tabs" aria-label="Widoki">
+          <button class="tab-button active" type="button" data-view="matchView">Mecz</button>
+          <button class="tab-button" type="button" data-view="groupsView">Grupy</button>
+          <button class="tab-button" type="button" data-view="worldCupView">Turniej</button>
+        </nav>
+      </header>
+
+      <main>
+        <section id="matchView" class="view active" aria-labelledby="matchHeading">
+          <div class="workspace-grid">
+            <section class="panel controls-panel">
+              <div class="panel-header">
+                <h2 id="matchHeading">Predykcja meczu</h2>
+              </div>
+
+              <div class="info-block">
+                <strong>Co pokazuje predykcja?</strong>
+                <p>
+                  Szanse wyniku po 90 minutach. Model bazuje na rankingu FIFA,
+                  punktach FIFA, roznicy rankingu i punktow, rodzaju turnieju oraz
+                  informacji, czy mecz jest grany na neutralnym terenie.
+                </p>
+              </div>
+
+              <form id="matchForm" class="form-grid">
+                <label>
+                  Gospodarz
+                  <input id="homeTeam" list="teamsList" autocomplete="off" value="Poland" />
+                </label>
+                <label>
+                  Gosc
+                  <input id="awayTeam" list="teamsList" autocomplete="off" value="Netherlands" />
+                </label>
+                <label>
+                  Turniej
+                  <input id="matchTournament" value="FIFA World Cup" />
+                </label>
+                <label class="inline-control">
+                  <input id="neutralMatch" type="checkbox" checked />
+                  Neutralny teren
+                </label>
+                <button class="primary-action" type="submit">Oblicz</button>
+              </form>
+            </section>
+
+            <section class="panel result-panel">
+              <div class="panel-header">
+                <h2>Szanse</h2>
+              </div>
+              <div id="matchResult" class="probability-stack empty-state">
+                Wybierz druzyny i uruchom predykcje.
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section id="groupsView" class="view" aria-labelledby="groupsHeading">
+          <div class="groups-layout">
+            <section class="panel group-tables-panel">
+              <div class="panel-header split-header">
+                <h2 id="groupsHeading">Tabele grup</h2>
+                <div class="button-row">
+                  <button id="loadDefaultGroups" class="secondary-action" type="button">Domyslne</button>
+                  <button id="addMatchRow" class="secondary-action" type="button">Dodaj mecz</button>
+                </div>
+              </div>
+              <div id="groupTables" class="group-tables-grid"></div>
+            </section>
+
+            <div class="side-stack">
+              <section class="panel controls-panel">
+                <div class="panel-header">
+                  <h2>Mecze grupowe</h2>
+                </div>
+
+                <div class="table-wrap editor-wrap">
+                  <table class="editor-table">
+                    <thead>
+                      <tr>
+                        <th>Grupa</th>
+                        <th>Gospodarz</th>
+                        <th>Gosc</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody id="groupMatchesBody"></tbody>
+                  </table>
+                </div>
+
+                <form id="groupSimulationForm" class="run-bar">
+                  <label>
+                    Symulacje
+                    <input id="groupSimulationCount" type="number" min="1" max="20000" value="1000" />
+                  </label>
+                  <label>
+                    Seed
+                    <input id="groupSeed" type="number" placeholder="opcjonalny" />
+                  </label>
+                  <button class="primary-action" type="submit">Symuluj grupy</button>
+                </form>
+              </section>
+
+              <section class="panel result-panel">
+                <div class="panel-header">
+                  <h2>Awans z grup</h2>
+                </div>
+                <div id="groupSummary" class="empty-state">
+                  Brak wynikow symulacji.
+                </div>
+              </section>
+            </div>
+          </div>
+        </section>
+
+        <section id="worldCupView" class="view" aria-labelledby="worldCupHeading">
+          <div class="world-layout">
+            <section class="panel controls-panel">
+              <div class="panel-header">
+                <h2 id="worldCupHeading">Symulacja turnieju</h2>
+              </div>
+
+              <form id="worldCupForm" class="form-grid">
+                <label>
+                  Symulacje
+                  <input id="worldCupSimulationCount" type="number" min="1" max="5000" value="100" />
+                </label>
+                <label>
+                  Seed
+                  <input id="worldCupSeed" type="number" placeholder="opcjonalny" />
+                </label>
+                <label class="inline-control">
+                  <input id="useEditedGroups" type="checkbox" checked />
+                  Uzyj edytora grup
+                </label>
+                <button class="primary-action" type="submit">Symuluj turniej</button>
+              </form>
+            </section>
+
+            <section class="panel result-panel">
+              <div class="panel-header">
+                <h2>Faworyci</h2>
+              </div>
+              <div id="worldCupSummary" class="empty-state">
+                Brak wynikow symulacji.
+              </div>
+            </section>
+
+            <section class="panel bracket-panel">
+              <div class="panel-header">
+                <h2>Drabinka</h2>
+              </div>
+              <div id="bracketTree" class="empty-state">
+                Uruchom symulacje turnieju, aby zobaczyc drabinke.
+              </div>
+            </section>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <datalist id="teamsList"></datalist>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="/static/app.js"></script>
+  </body>
+</html>
