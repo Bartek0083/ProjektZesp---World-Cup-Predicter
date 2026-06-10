@@ -312,39 +312,213 @@ def summarize_group_stage(
     )
 
 
+def summarize_group_stage_arrays(
+    team_rows: pd.DataFrame,
+    points: np.ndarray,
+    wins: np.ndarray,
+    draws: np.ndarray,
+    losses: np.ndarray,
+    group_positions: np.ndarray,
+    qualified: np.ndarray,
+    n_simulations: int,
+) -> pd.DataFrame:
+    summary = team_rows[["team", "group"]].copy()
+    summary["avg_points"] = points.mean(axis=0).round(2)
+    summary["avg_wins"] = wins.mean(axis=0).round(2)
+    summary["avg_draws"] = draws.mean(axis=0).round(2)
+    summary["avg_losses"] = losses.mean(axis=0).round(2)
+
+    summary["group_winner_count"] = (group_positions == 1).sum(axis=0)
+    summary["second_place_count"] = (group_positions == 2).sum(axis=0)
+    summary["third_place_count"] = (group_positions == 3).sum(axis=0)
+    summary["fourth_place_count"] = (group_positions == 4).sum(axis=0)
+    summary["qualified_count"] = qualified.sum(axis=0)
+
+    position_columns = {
+        "group_winner_%": "group_winner_count",
+        "second_place_%": "second_place_count",
+        "third_place_%": "third_place_count",
+        "fourth_place_%": "fourth_place_count",
+        "qualified_%": "qualified_count",
+    }
+    for percent_column, count_column in position_columns.items():
+        summary[percent_column] = (summary[count_column] / n_simulations * 100).round(2)
+
+    return summary.sort_values(
+        ["qualified_%", "group_winner_%", "avg_points"],
+        ascending=[False, False, False],
+    )
+
+
+def build_group_stage_simulations_frame(
+    team_rows: pd.DataFrame,
+    points: np.ndarray,
+    wins: np.ndarray,
+    draws: np.ndarray,
+    losses: np.ndarray,
+    group_positions: np.ndarray,
+    qualified: np.ndarray,
+) -> pd.DataFrame:
+    n_simulations, n_teams = points.shape
+
+    return pd.DataFrame(
+        {
+            "simulation_id": np.repeat(np.arange(1, n_simulations + 1), n_teams),
+            "group": np.tile(team_rows["group"].to_numpy(), n_simulations),
+            "team": np.tile(team_rows["team"].to_numpy(), n_simulations),
+            "group_position": group_positions.reshape(-1),
+            "points": points.reshape(-1),
+            "wins": wins.reshape(-1),
+            "draws": draws.reshape(-1),
+            "losses": losses.reshape(-1),
+            "qualified": qualified.astype(np.int8).reshape(-1),
+        }
+    )
+
+
+def simulate_group_stage_arrays(
+    group_matches_with_proba: pd.DataFrame,
+    latest_team_data: pd.DataFrame,
+    n_simulations: int,
+    rng: np.random.Generator,
+) -> tuple[pd.DataFrame, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    if n_simulations < 1:
+        raise ValueError("n_simulations must be at least 1")
+
+    team_rows = pd.concat(
+        [
+            group_matches_with_proba[["group", "home_team"]].rename(columns={"home_team": "team"}),
+            group_matches_with_proba[["group", "away_team"]].rename(columns={"away_team": "team"}),
+        ],
+        ignore_index=True,
+    ).drop_duplicates(ignore_index=True)
+
+    team_key_to_index = {
+        (row["group"], row["team"]): idx
+        for idx, row in team_rows.reset_index(drop=True).iterrows()
+    }
+
+    home_indices = np.array(
+        [
+            team_key_to_index[(row.group, row.home_team)]
+            for row in group_matches_with_proba.itertuples(index=False)
+        ],
+        dtype=np.int16,
+    )
+    away_indices = np.array(
+        [
+            team_key_to_index[(row.group, row.away_team)]
+            for row in group_matches_with_proba.itertuples(index=False)
+        ],
+        dtype=np.int16,
+    )
+
+    probabilities = group_matches_with_proba[
+        ["home_win_proba", "draw_proba", "away_win_proba"]
+    ].to_numpy(dtype=float)
+    cumulative_probabilities = probabilities.cumsum(axis=1)
+    outcomes = (rng.random((n_simulations, len(probabilities), 1)) > cumulative_probabilities).sum(axis=2)
+
+    n_teams = len(team_rows)
+    points = np.zeros((n_simulations, n_teams), dtype=np.int16)
+    wins = np.zeros_like(points)
+    draws = np.zeros_like(points)
+    losses = np.zeros_like(points)
+
+    for match_index, (home_idx, away_idx) in enumerate(zip(home_indices, away_indices)):
+        result = outcomes[:, match_index]
+        home_wins = result == 0
+        draws_mask = result == 1
+        away_wins = result == 2
+
+        points[home_wins, home_idx] += 3
+        wins[home_wins, home_idx] += 1
+        losses[home_wins, away_idx] += 1
+
+        points[away_wins, away_idx] += 3
+        wins[away_wins, away_idx] += 1
+        losses[away_wins, home_idx] += 1
+
+        points[draws_mask, home_idx] += 1
+        points[draws_mask, away_idx] += 1
+        draws[draws_mask, home_idx] += 1
+        draws[draws_mask, away_idx] += 1
+
+    fifa_points = team_rows["team"].map(latest_team_data["fifa_points"]).to_numpy(dtype=float)
+    group_positions = np.zeros((n_simulations, n_teams), dtype=np.int16)
+    qualified = np.zeros((n_simulations, n_teams), dtype=bool)
+    groups = team_rows["group"].to_numpy()
+    group_to_indices = {
+        group: np.flatnonzero(groups == group)
+        for group in pd.unique(groups)
+    }
+
+    for sim_index in range(n_simulations):
+        for group_indices in group_to_indices.values():
+            sorted_group_indices = sorted(
+                group_indices,
+                key=lambda idx: (points[sim_index, idx], fifa_points[idx]),
+                reverse=True,
+            )
+            group_positions[sim_index, sorted_group_indices] = np.arange(
+                1,
+                len(sorted_group_indices) + 1,
+                dtype=np.int16,
+            )
+
+        qualified[sim_index, group_positions[sim_index] <= 2] = True
+        third_place_indices = np.flatnonzero(group_positions[sim_index] == 3)
+        best_third_place_indices = sorted(
+            third_place_indices,
+            key=lambda idx: (points[sim_index, idx], fifa_points[idx]),
+            reverse=True,
+        )[:8]
+        qualified[sim_index, best_third_place_indices] = True
+
+    return team_rows, points, wins, draws, losses, group_positions, qualified
+
+
 def simulate_group_stage_many_times(
     trained_model: TrainedWorldCupModel,
     group_matches: pd.DataFrame,
     n_simulations: int = 1_000,
     seed: int | None = None,
+    include_simulations: bool = True,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     rng = get_rng(seed=seed)
     group_matches_with_proba = add_probabilities_to_group_matches(trained_model, group_matches)
-    summary_rows = []
+    team_rows, points, wins, draws, losses, group_positions, qualified = simulate_group_stage_arrays(
+        group_matches_with_proba=group_matches_with_proba,
+        latest_team_data=trained_model.latest_team_data,
+        n_simulations=n_simulations,
+        rng=rng,
+    )
 
-    for sim_id in range(1, n_simulations + 1):
-        match_results = simulate_one_group_stage(group_matches_with_proba, rng=rng)
-        group_table = build_group_tables(match_results, trained_model.latest_team_data)
-        qualifiers = get_group_stage_qualifiers(group_table)
-        qualified_teams = set(qualifiers["team"])
+    summary = summarize_group_stage_arrays(
+        team_rows=team_rows,
+        points=points,
+        wins=wins,
+        draws=draws,
+        losses=losses,
+        group_positions=group_positions,
+        qualified=qualified,
+        n_simulations=n_simulations,
+    )
+    simulations = (
+        build_group_stage_simulations_frame(
+            team_rows=team_rows,
+            points=points,
+            wins=wins,
+            draws=draws,
+            losses=losses,
+            group_positions=group_positions,
+            qualified=qualified,
+        )
+        if include_simulations
+        else pd.DataFrame()
+    )
 
-        for _, row in group_table.iterrows():
-            summary_rows.append(
-                {
-                    "simulation_id": sim_id,
-                    "group": row["group"],
-                    "team": row["team"],
-                    "group_position": row["group_position"],
-                    "points": row["points"],
-                    "wins": row["wins"],
-                    "draws": row["draws"],
-                    "losses": row["losses"],
-                    "qualified": int(row["team"] in qualified_teams),
-                }
-            )
-
-    simulations = pd.DataFrame(summary_rows)
-    return summarize_group_stage(simulations, n_simulations), simulations, group_matches_with_proba
+    return summary, simulations, group_matches_with_proba
 
 
 def simulate_knockout_match(

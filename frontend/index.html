@@ -79,7 +79,6 @@
                 <h2 id="groupsHeading">Tabele grup</h2>
                 <div class="button-row">
                   <button id="loadDefaultGroups" class="secondary-action" type="button">Domyslne</button>
-                  <button id="addMatchRow" class="secondary-action" type="button">Dodaj mecz</button>
                 </div>
               </div>
               <div id="groupTables" class="group-tables-grid"></div>
@@ -88,21 +87,24 @@
             <div class="side-stack">
               <section class="panel controls-panel">
                 <div class="panel-header">
-                  <h2>Mecze grupowe</h2>
+                  <h2>Symulacja grup</h2>
                 </div>
 
-                <div class="table-wrap editor-wrap">
-                  <table class="editor-table">
-                    <thead>
-                      <tr>
-                        <th>Grupa</th>
-                        <th>Gospodarz</th>
-                        <th>Gosc</th>
-                        <th></th>
-                      </tr>
-                    </thead>
-                    <tbody id="groupMatchesBody"></tbody>
-                  </table>
+                <div class="info-block">
+                  <strong>Jak dziala ta zakladka?</strong>
+                  <p>
+                    Edytujesz sklady grup w tabelach po lewej, a potem uruchamiasz
+                    wiele symulacji meczow grupowych. Aplikacja liczy szanse awansu,
+                    porownuje trzecie miejsca i moze pokazac podglad ukladu 1/16 finalu.
+                  </p>
+                </div>
+
+                <div class="info-block group-edit-info">
+                  <strong>Edycja druzyn</strong>
+                  <p>
+                    Najedz na panstwo w tabeli, aby je powiekszyc. Kliknij panstwo,
+                    wybierz nowa reprezentacje i zapisz zmiane dla calej grupy.
+                  </p>
                 </div>
 
                 <form id="groupSimulationForm" class="run-bar">
@@ -110,17 +112,25 @@
                     Symulacje
                     <input id="groupSimulationCount" type="number" min="1" max="20000" value="1000" />
                   </label>
-                  <label>
-                    Seed
-                    <input id="groupSeed" type="number" placeholder="opcjonalny" />
-                  </label>
                   <button class="primary-action" type="submit">Symuluj grupy</button>
                 </form>
               </section>
 
               <section class="panel result-panel">
+                <div class="panel-header split-header">
+                  <h2>Trzecie miejsca</h2>
+                  <button id="showGroupBracket" class="secondary-action" type="button" disabled>
+                    Pokaż drabinkę
+                  </button>
+                </div>
+                <div id="thirdPlaceSummary" class="empty-state">
+                  Uruchom symulacje grup.
+                </div>
+              </section>
+
+              <section class="panel result-panel">
                 <div class="panel-header">
-                  <h2>Awans z grup</h2>
+                  <h2>Awans z grupy</h2>
                 </div>
                 <div id="groupSummary" class="empty-state">
                   Brak wynikow symulacji.
@@ -128,6 +138,15 @@
               </section>
             </div>
           </div>
+
+          <section id="groupBracketPanel" class="panel result-panel group-bracket-full" hidden>
+            <div class="panel-header">
+              <h2>Podgląd 1/16 finału</h2>
+            </div>
+            <div id="groupBracketPreview" class="empty-state">
+              Brak danych drabinki.
+            </div>
+          </section>
         </section>
 
         <section id="worldCupView" class="view" aria-labelledby="worldCupHeading">
@@ -148,7 +167,7 @@
                 </label>
                 <label class="inline-control">
                   <input id="useEditedGroups" type="checkbox" checked />
-                  Uzyj edytora grup
+                  Uzyj tabel grup
                 </label>
                 <button class="primary-action" type="submit">Symuluj turniej</button>
               </form>
@@ -177,6 +196,22 @@
     </div>
 
     <datalist id="teamsList"></datalist>
+    <div id="teamEditorOverlay" class="modal-overlay" hidden>
+      <section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="teamEditorTitle">
+        <div class="panel-header split-header">
+          <h2 id="teamEditorTitle">Zmien druzyne</h2>
+          <button id="closeTeamEditor" class="icon-action" type="button" aria-label="Zamknij">x</button>
+        </div>
+        <form id="teamEditorForm" class="form-grid">
+          <div id="teamEditorCurrent" class="selected-team-preview"></div>
+          <label>
+            Nowa druzyna
+            <input id="teamEditorInput" list="teamsList" autocomplete="off" />
+          </label>
+          <button class="primary-action" type="submit">Zapisz zmiane</button>
+        </form>
+      </section>
+    </div>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
     <script src="/static/app.js"></script>
   </body>

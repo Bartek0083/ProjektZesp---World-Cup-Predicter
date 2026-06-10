@@ -142,6 +142,7 @@ def simulate_group_stage(request: GroupStageSimulationRequest) -> dict[str, Any]
             group_matches=group_matches,
             n_simulations=request.n_simulations,
             seed=request.seed,
+            include_simulations=request.include_simulations,
         )
         return {
             "n_simulations": request.n_simulations,
