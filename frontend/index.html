@@ -140,8 +140,11 @@
           </div>
 
           <section id="groupBracketPanel" class="panel result-panel group-bracket-full" hidden>
-            <div class="panel-header">
+            <div class="panel-header split-header">
               <h2>Podgląd 1/16 finału</h2>
+              <button id="runTournamentFromGroups" class="primary-action" type="button">
+                Przeprowadź symulację turnieju
+              </button>
             </div>
             <div id="groupBracketPreview" class="empty-state">
               Brak danych drabinki.
@@ -156,18 +159,26 @@
                 <h2 id="worldCupHeading">Symulacja turnieju</h2>
               </div>
 
+              <div class="info-block">
+                <strong>Co pokazuje symulacja?</strong>
+                <p>
+                  Symulacja turnieju uruchamia wiele mozliwych przebiegow fazy
+                  pucharowej, a tabelka Faworyci pokazuje reprezentacje z
+                  najwieksza szansa na wygranie turnieju. Gdy opcja uzycia
+                  druzyn z ostatniej symulacji grup jest zaznaczona, turniej
+                  startuje tylko od zespolow z miejsc 1-2 i najlepszych trzecich
+                  miejsc widocznych w podgladzie 1/16 finalu.
+                </p>
+              </div>
+
               <form id="worldCupForm" class="form-grid">
                 <label>
                   Symulacje
                   <input id="worldCupSimulationCount" type="number" min="1" max="5000" value="100" />
                 </label>
-                <label>
-                  Seed
-                  <input id="worldCupSeed" type="number" placeholder="opcjonalny" />
-                </label>
                 <label class="inline-control">
                   <input id="useEditedGroups" type="checkbox" checked />
-                  Uzyj tabel grup
+                  Uzyj druzyn z najwieksza szansa na wyjscie z grupy
                 </label>
                 <button class="primary-action" type="submit">Symuluj turniej</button>
               </form>

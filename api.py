@@ -15,6 +15,7 @@ from data import DATA_DIR_ENV, load_group_matches
 from model import evaluate_model, load_or_train_model, predict_match_proba
 from simulator import (
     simulate_group_stage_many_times,
+    simulate_world_cup_from_r32_pairings_many_times,
     simulate_world_cup_many_times_official_bracket,
 )
 
@@ -40,17 +41,24 @@ class GroupMatchRequest(BaseModel):
     away_team: str
 
 
+class R32PairingRequest(BaseModel):
+    match_id: str
+    home_team: str
+    away_team: str
+    home_slot: str | None = None
+    away_slot: str | None = None
+
+
 class GroupStageSimulationRequest(BaseModel):
     matches: list[GroupMatchRequest] | None = None
     n_simulations: int = Field(default=1_000, ge=1, le=20_000)
-    seed: int | None = None
     include_simulations: bool = False
 
 
 class WorldCupSimulationRequest(BaseModel):
     matches: list[GroupMatchRequest] | None = None
+    r32_pairings: list[R32PairingRequest] | None = None
     n_simulations: int = Field(default=100, ge=1, le=5_000)
-    seed: int | None = None
     include_knockout_results: bool = False
 
 
@@ -84,6 +92,10 @@ def request_matches_to_df(matches: list[GroupMatchRequest] | None) -> pd.DataFra
     if matches is None:
         return load_group_matches(data_dir=get_data_dir())
     return pd.DataFrame([model_to_dict(match) for match in matches])
+
+
+def request_pairings_to_records(pairings: list[R32PairingRequest]) -> list[dict[str, Any]]:
+    return [model_to_dict(pairing) for pairing in pairings]
 
 
 @app.get("/health")
@@ -141,7 +153,6 @@ def simulate_group_stage(request: GroupStageSimulationRequest) -> dict[str, Any]
             trained_model=trained_model,
             group_matches=group_matches,
             n_simulations=request.n_simulations,
-            seed=request.seed,
             include_simulations=request.include_simulations,
         )
         return {
@@ -158,13 +169,31 @@ def simulate_group_stage(request: GroupStageSimulationRequest) -> dict[str, Any]
 def simulate_world_cup(request: WorldCupSimulationRequest) -> dict[str, Any]:
     try:
         trained_model = get_trained_model()
+        if request.r32_pairings is not None:
+            summary, knockout_results = simulate_world_cup_from_r32_pairings_many_times(
+                trained_model=trained_model,
+                r32_pairings=request_pairings_to_records(request.r32_pairings),
+                n_simulations=request.n_simulations,
+                include_knockout_results=request.include_knockout_results,
+                collect_all_knockout_results=False,
+            )
+            response: dict[str, Any] = {
+                "n_simulations": request.n_simulations,
+                "summary": records(summary),
+                "match_probabilities": [],
+            }
+            if request.include_knockout_results:
+                response["knockout_results"] = records(knockout_results)
+            return response
+
         group_matches = request_matches_to_df(request.matches)
         summary, knockout_results, group_matches_with_proba = (
             simulate_world_cup_many_times_official_bracket(
                 trained_model=trained_model,
                 group_matches=group_matches,
                 n_simulations=request.n_simulations,
-                seed=request.seed,
+                include_knockout_results=request.include_knockout_results,
+                collect_all_knockout_results=False,
             )
         )
         response: dict[str, Any] = {

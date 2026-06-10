@@ -406,22 +406,32 @@ input:focus {
   scrollbar-gutter: stable;
 }
 
-#groupSummary.table-wrap::-webkit-scrollbar {
+#worldCupSummary.table-wrap {
+  max-height: 386px;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+#groupSummary.table-wrap::-webkit-scrollbar,
+#worldCupSummary.table-wrap::-webkit-scrollbar {
   width: 10px;
 }
 
-#groupSummary.table-wrap::-webkit-scrollbar-track {
+#groupSummary.table-wrap::-webkit-scrollbar-track,
+#worldCupSummary.table-wrap::-webkit-scrollbar-track {
   background: #eef4f0;
   border-radius: 999px;
 }
 
-#groupSummary.table-wrap::-webkit-scrollbar-thumb {
+#groupSummary.table-wrap::-webkit-scrollbar-thumb,
+#worldCupSummary.table-wrap::-webkit-scrollbar-thumb {
   background: #9eb0a7;
   border: 2px solid #eef4f0;
   border-radius: 999px;
 }
 
-#groupSummary.table-wrap::-webkit-scrollbar-thumb:hover {
+#groupSummary.table-wrap::-webkit-scrollbar-thumb:hover,
+#worldCupSummary.table-wrap::-webkit-scrollbar-thumb:hover {
   background: #74867d;
 }
 

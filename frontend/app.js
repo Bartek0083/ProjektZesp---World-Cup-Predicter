@@ -3,6 +3,7 @@ const state = {
   defaultMatches: [],
   currentMatches: [],
   latestGroupSummary: null,
+  latestGroupPairings: null,
   editTarget: null,
 };
 
@@ -311,9 +312,9 @@ const els = {
   showGroupBracket: document.getElementById("showGroupBracket"),
   groupBracketPanel: document.getElementById("groupBracketPanel"),
   groupBracketPreview: document.getElementById("groupBracketPreview"),
+  runTournamentFromGroups: document.getElementById("runTournamentFromGroups"),
   worldCupForm: document.getElementById("worldCupForm"),
   worldCupSimulationCount: document.getElementById("worldCupSimulationCount"),
-  worldCupSeed: document.getElementById("worldCupSeed"),
   useEditedGroups: document.getElementById("useEditedGroups"),
   worldCupSummary: document.getElementById("worldCupSummary"),
   bracketTree: document.getElementById("bracketTree"),
@@ -636,6 +637,7 @@ function collectGroupMatches() {
 
 function resetGroupSimulationResults() {
   state.latestGroupSummary = null;
+  state.latestGroupPairings = null;
   els.groupSummary.className = "empty-state";
   els.groupSummary.textContent = "Brak wynikow symulacji.";
   els.thirdPlaceSummary.className = "empty-state";
@@ -682,11 +684,6 @@ function replaceTeamInGroup(group, oldTeam, newTeam) {
   });
   resetGroupSimulationResults();
   renderGroupTables();
-}
-
-function optionalNumber(input) {
-  const value = input.value.trim();
-  return value ? Number(value) : null;
 }
 
 function buildGroupTableRowsFromMatches(matches) {
@@ -970,14 +967,47 @@ function createGroupStageBracketPairings(summaryRows) {
 }
 
 function renderGroupBracketPreview(pairings) {
+  state.latestGroupPairings = pairings;
+  els.groupBracketPanel.hidden = false;
+  renderGroupBracketPreviewInto(
+    els.groupBracketPreview,
+    pairings,
+    "Podglad ukladu fazy pucharowej po wynikach grup",
+    "Bez symulacji zwyciezcow kolejnych rund",
+  );
+}
+
+function renderWorldCupGroupBracketPreview(pairings) {
+  state.latestGroupPairings = pairings;
+  renderGroupBracketPreviewInto(
+    els.bracketTree,
+    pairings,
+    "Podglad drabinki z zakladki Grupy",
+    "Uruchom symulacje turnieju, aby zobaczyc wyniki",
+  );
+}
+
+function getLatestGroupQualifierPairings() {
+  if (state.latestGroupPairings && state.latestGroupPairings.length) {
+    return state.latestGroupPairings;
+  }
+
+  if (!state.latestGroupSummary || !state.latestGroupSummary.length) {
+    throw new Error("Najpierw uruchom symulacje grup, aby wybrac kwalifikantow.");
+  }
+
+  state.latestGroupPairings = createGroupStageBracketPairings(state.latestGroupSummary);
+  return state.latestGroupPairings;
+}
+
+function renderGroupBracketPreviewInto(target, pairings, metaText, metaStrong) {
   const matchById = buildGroupBracketPreviewMatches(pairings);
 
-  els.groupBracketPanel.hidden = false;
-  els.groupBracketPreview.className = "bracket-wrap group-bracket-tree";
-  els.groupBracketPreview.innerHTML = `
+  target.className = "bracket-wrap group-bracket-tree";
+  target.innerHTML = `
     <div class="bracket-meta">
-      <span>Podglad ukladu fazy pucharowej po wynikach grup</span>
-      <strong>Bez symulacji zwyciezcow kolejnych rund</strong>
+      <span>${escapeHtml(metaText)}</span>
+      <strong>${escapeHtml(metaStrong)}</strong>
     </div>
     <div class="bracket-split">
       ${renderGroupBracketSide("left", matchById)}
@@ -1171,7 +1201,7 @@ function renderBracket(knockoutResults) {
   els.bracketTree.className = "bracket-wrap";
   els.bracketTree.innerHTML = `
     <div class="bracket-meta">
-      <span>Ostatnia symulacja: ${selectedSimulationId}</span>
+      <span>Ostatnia przeprowadzona drabinka z symulacji: ${selectedSimulationId}</span>
       ${champion ? `<strong>${teamInline(champion)}</strong>` : ""}
     </div>
     <div class="bracket-split">
@@ -1364,11 +1394,11 @@ els.groupSimulationForm.addEventListener("submit", async (event) => {
       body: JSON.stringify({
         matches,
         n_simulations: Number(els.groupSimulationCount.value || 1000),
-        seed: null,
       }),
     });
 
     state.latestGroupSummary = payload.summary || [];
+    state.latestGroupPairings = null;
     renderGroupTables(state.latestGroupSummary);
     renderThirdPlaceSummary(state.latestGroupSummary);
     els.groupBracketPanel.hidden = true;
@@ -1398,9 +1428,31 @@ els.showGroupBracket.addEventListener("click", () => {
   }
 
   try {
-    const pairings = createGroupStageBracketPairings(state.latestGroupSummary);
+    const pairings = getLatestGroupQualifierPairings();
     renderGroupBracketPreview(pairings);
     els.groupBracketPanel.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  } catch (error) {
+    showToast(error.message, "error");
+  }
+});
+
+els.runTournamentFromGroups.addEventListener("click", () => {
+  if (!state.latestGroupSummary || !state.latestGroupSummary.length) {
+    showToast("Najpierw uruchom symulacje grup", "error");
+    return;
+  }
+
+  try {
+    const pairings = getLatestGroupQualifierPairings();
+    renderWorldCupGroupBracketPreview(pairings);
+    els.worldCupSummary.className = "empty-state";
+    els.worldCupSummary.textContent = "Uruchom symulacje turnieju dla aktualnej drabinki.";
+    els.useEditedGroups.checked = true;
+    activateView("worldCupView");
+    els.worldCupForm.scrollIntoView({
       behavior: "smooth",
       block: "start",
     });
@@ -1412,24 +1464,48 @@ els.showGroupBracket.addEventListener("click", () => {
 els.worldCupForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const button = event.submitter;
-  const editedMatches = collectGroupMatches();
-  const useEditedMatches = els.useEditedGroups.checked && editedMatches.length > 0;
+  const useGroupQualifiers = els.useEditedGroups.checked;
+  let r32Pairings = null;
+
+  if (useGroupQualifiers) {
+    if (!state.latestGroupSummary || !state.latestGroupSummary.length) {
+      showToast("Najpierw uruchom symulacje grup, aby wybrac kwalifikantow", "error");
+      return;
+    }
+
+    try {
+      r32Pairings = getLatestGroupQualifierPairings();
+      renderWorldCupGroupBracketPreview(r32Pairings);
+    } catch (error) {
+      showToast(error.message, "error");
+      return;
+    }
+  }
 
   setLoading(button, true, "Symuluje");
   try {
     const payload = await api("/simulate-world-cup", {
       method: "POST",
       body: JSON.stringify({
-        matches: useEditedMatches ? editedMatches : null,
+        matches: null,
+        r32_pairings: r32Pairings
+          ? r32Pairings.map((pairing) => ({
+              match_id: pairing.match_id,
+              home_slot: pairing.home_slot,
+              away_slot: pairing.away_slot,
+              home_team: pairing.home_team,
+              away_team: pairing.away_team,
+            }))
+          : null,
         n_simulations: Number(els.worldCupSimulationCount.value || 100),
-        seed: optionalNumber(els.worldCupSeed),
         include_knockout_results: true,
       }),
     });
 
+    const worldCupSummaryRows = payload.summary || [];
     renderSummaryTable(
       els.worldCupSummary,
-      payload.summary || [],
+      worldCupSummaryRows,
       [
         { label: "Druzyna", key: "champion_%", bar: true },
         { label: "Mistrz", key: "champion_%", percent: true },
@@ -1437,7 +1513,7 @@ els.worldCupForm.addEventListener("submit", async (event) => {
         { label: "1/2", key: "semi_final_%", percent: true },
         { label: "1/4", key: "quarter_final_%", percent: true },
       ],
-      24,
+      worldCupSummaryRows.length,
     );
     renderBracket(payload.knockout_results || []);
   } catch (error) {

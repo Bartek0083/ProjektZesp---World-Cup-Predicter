@@ -5,6 +5,8 @@ Backend FastAPI + statyczny frontend do predykcji meczow i symulacji turnieju.
 ## Uruchomienie lokalne
 
 ```powershell
+cd "C:\Users\bmura\OneDrive\Dokumenty\MachineLearning"
+
 py -m venv .venv
 .\.venv\Scripts\Activate.ps1
 
