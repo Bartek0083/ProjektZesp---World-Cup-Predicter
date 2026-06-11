@@ -1,0 +1,136 @@
+{
+  "matches_today": [
+    {
+      "id": "seed-001",
+      "home_team": "Mexico",
+      "away_team": "South Africa",
+      "home_badge": null,
+      "away_badge": null,
+      "date": "2026-06-11",
+      "time": "19:00:00",
+      "league": "FIFA World Cup",
+      "league_id": "4429",
+      "status": "FT",
+      "home_score": 2,
+      "away_score": 0,
+      "is_finished": true,
+      "is_upcoming": false,
+      "venue": "Estadio Azteca",
+      "source": "seed"
+    },
+    {
+      "id": "seed-002",
+      "home_team": "Argentina",
+      "away_team": "France",
+      "home_badge": null,
+      "away_badge": null,
+      "date": "2026-06-12",
+      "time": "21:00:00",
+      "league": "FIFA World Cup",
+      "league_id": "4429",
+      "status": "NS",
+      "home_score": null,
+      "away_score": null,
+      "is_finished": false,
+      "is_upcoming": true,
+      "venue": "MetLife Stadium",
+      "source": "seed"
+    }
+  ],
+  "upcoming": [
+    {
+      "id": "seed-002",
+      "home_team": "Argentina",
+      "away_team": "France",
+      "home_badge": null,
+      "away_badge": null,
+      "date": "2026-06-12",
+      "time": "21:00:00",
+      "league": "FIFA World Cup",
+      "league_id": "4429",
+      "status": "NS",
+      "home_score": null,
+      "away_score": null,
+      "is_finished": false,
+      "is_upcoming": true,
+      "venue": "MetLife Stadium",
+      "source": "seed"
+    },
+    {
+      "id": "seed-003",
+      "home_team": "Brazil",
+      "away_team": "Germany",
+      "home_badge": null,
+      "away_badge": null,
+      "date": "2026-06-13",
+      "time": "18:00:00",
+      "league": "FIFA World Cup",
+      "league_id": "4429",
+      "status": "NS",
+      "home_score": null,
+      "away_score": null,
+      "is_finished": false,
+      "is_upcoming": true,
+      "venue": "SoFi Stadium",
+      "source": "seed"
+    }
+  ],
+  "details": {
+    "seed-001": {
+      "id": "seed-001",
+      "home_team": "Mexico",
+      "away_team": "South Africa",
+      "home_badge": null,
+      "away_badge": null,
+      "date": "2026-06-11",
+      "time": "19:00:00",
+      "league": "FIFA World Cup",
+      "status": "FT",
+      "home_score": 2,
+      "away_score": 0,
+      "is_finished": true,
+      "venue": "Estadio Azteca",
+      "source": "seed"
+    }
+  },
+  "timelines": {
+    "seed-001": [
+      {
+        "minute": 0,
+        "event_type": "kickoff",
+        "team": null,
+        "description": "Rozpoczęcie meczu",
+        "home_score": 0,
+        "away_score": 0,
+        "phase": "regular"
+      },
+      {
+        "minute": 9,
+        "event_type": "goal",
+        "team": "Mexico",
+        "description": "Gol — México (9')",
+        "home_score": 1,
+        "away_score": 0,
+        "phase": "regular"
+      },
+      {
+        "minute": 78,
+        "event_type": "goal",
+        "team": "Mexico",
+        "description": "Gol — México (78')",
+        "home_score": 2,
+        "away_score": 0,
+        "phase": "regular"
+      },
+      {
+        "minute": 90,
+        "event_type": "full_time",
+        "team": null,
+        "description": "Koniec meczu",
+        "home_score": 2,
+        "away_score": 0,
+        "phase": "regular"
+      }
+    ]
+  }
+}

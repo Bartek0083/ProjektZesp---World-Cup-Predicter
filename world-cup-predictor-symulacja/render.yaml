@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: world-cup-symulacja
+    runtime: docker
+    plan: free
+    region: frankfurt
+    healthCheckPath: /health
+    envVars:
+      - key: THESPORTSDB_API_KEY
+        value: "123"
+      - key: PYTHONUNBUFFERED
+        value: "1"

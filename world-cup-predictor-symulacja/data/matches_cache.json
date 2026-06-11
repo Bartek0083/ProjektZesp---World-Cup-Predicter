@@ -1,0 +1,110 @@
+{
+  "updated_at": "2026-06-11T21:45:47.229509+00:00",
+  "today": {
+    "date": "2026-06-11",
+    "matches": [
+      {
+        "id": "2391728",
+        "home_team": "Mexico",
+        "away_team": "South Africa",
+        "home_badge": "https://r2.thesportsdb.com/images/media/team/badge/3rmosi1748525208.png",
+        "away_badge": "https://r2.thesportsdb.com/images/media/team/badge/xjz9j91553368824.png",
+        "date": "2026-06-11",
+        "time": "19:00:00",
+        "league": "FIFA World Cup",
+        "league_id": "4429",
+        "status": "FT",
+        "home_score": 2,
+        "away_score": 0,
+        "is_finished": true,
+        "is_upcoming": false,
+        "is_live": false,
+        "venue": "Estadio Azteca",
+        "source": "thesportsdb"
+      },
+      {
+        "id": "2397164",
+        "home_team": "Monterey Bay FC",
+        "away_team": "Sporting JAX",
+        "home_badge": "https://r2.thesportsdb.com/images/media/team/badge/4wca4f1736267704.png",
+        "away_badge": "https://r2.thesportsdb.com/images/media/team/badge/ddj2h91744180515.png",
+        "date": "2026-06-11",
+        "time": "02:00:00",
+        "league": "American USL Championship",
+        "league_id": "4684",
+        "status": "FT",
+        "home_score": 2,
+        "away_score": 1,
+        "is_finished": true,
+        "is_upcoming": false,
+        "is_live": false,
+        "venue": "Cardinale Stadium",
+        "source": "thesportsdb"
+      },
+      {
+        "id": "2397165",
+        "home_team": "Phoenix Rising",
+        "away_team": "Louisville City",
+        "home_badge": "https://r2.thesportsdb.com/images/media/team/badge/lanpqo1690267344.png",
+        "away_badge": "https://r2.thesportsdb.com/images/media/team/badge/v0wen91771603471.png",
+        "date": "2026-06-11",
+        "time": "02:30:00",
+        "league": "American USL Championship",
+        "league_id": "4684",
+        "status": "FT",
+        "home_score": 0,
+        "away_score": 2,
+        "is_finished": true,
+        "is_upcoming": false,
+        "is_live": false,
+        "venue": "Casino Arizona Field",
+        "source": "thesportsdb"
+      }
+    ],
+    "source": "thesportsdb"
+  },
+  "upcoming": {
+    "matches": [
+      {
+        "id": "2391728",
+        "home_team": "Mexico",
+        "away_team": "South Africa",
+        "home_badge": "https://r2.thesportsdb.com/images/media/team/badge/3rmosi1748525208.png",
+        "away_badge": "https://r2.thesportsdb.com/images/media/team/badge/xjz9j91553368824.png",
+        "date": "2026-06-11",
+        "time": "19:00:00",
+        "league": "FIFA World Cup",
+        "league_id": "4429",
+        "status": "FT",
+        "home_score": 2,
+        "away_score": 0,
+        "is_finished": true,
+        "is_upcoming": false,
+        "is_live": false,
+        "venue": "Estadio Azteca",
+        "source": "thesportsdb"
+      },
+      {
+        "id": "2482138",
+        "home_team": "Udinese",
+        "away_team": "Como",
+        "home_badge": "https://r2.thesportsdb.com/images/media/team/badge/vwvstr1448806811.png",
+        "away_badge": "https://r2.thesportsdb.com/images/media/team/badge/02x81t1627405841.png",
+        "date": "2026-08-23",
+        "time": "16:30:00",
+        "league": "Italian Serie A",
+        "league_id": "4332",
+        "status": "NS",
+        "home_score": null,
+        "away_score": null,
+        "is_finished": false,
+        "is_upcoming": true,
+        "is_live": false,
+        "venue": "Bluenergy Stadium",
+        "source": "thesportsdb"
+      }
+    ],
+    "source": "thesportsdb"
+  },
+  "note": "Free tier: brak livescore v2 — używamy eventsday/eventsnextleague. Pełny livescore wymaga premium."
+}

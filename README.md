@@ -40,3 +40,17 @@ artifacts/world_cup_model.joblib
 - `POST /predict-match`
 - `POST /simulate-group-stage`
 - `POST /simulate-world-cup`
+
+## Moduł symulacji meczu (Jakub Szych)
+
+Folder `world-cup-predictor-symulacja/` — osobna aplikacja: animowany przebieg meczu, tryby towarzyski/turniejowy, mecze z TheSportsDB.
+
+```powershell
+cd world-cup-predictor-symulacja
+py -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+python -m uvicorn api:app --reload --port 8010
+```
+
+Szczegóły: `world-cup-predictor-symulacja/SPRAWOZDANIE.md`

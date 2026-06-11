@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Symulator meczu — World Cup Predictor</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <header class="top-bar">
+    <div class="top-bar-inner">
+      <h1>Symulator meczu</h1>
+      <p class="top-bar-sub">World Cup Predictor — moduł symulacji</p>
+    </div>
+    <span class="api-status" id="statusText">Ładowanie drużyn…</span>
+  </header>
+
+  <nav class="main-tabs" role="tablist">
+    <button type="button" class="main-tab" id="tabSimulate" role="tab" aria-selected="false" data-panel="panelSimulate">
+      Symulacja
+    </button>
+    <button type="button" class="main-tab active" id="tabMatches" role="tab" aria-selected="true" data-panel="panelMatches">
+      Mecze z API
+    </button>
+  </nav>
+
+  <div class="page hidden" id="panelSimulate" role="tabpanel" hidden>
+    <aside class="sidebar">
+      <h2 class="section-title">Ustawienia</h2>
+      <form id="matchForm">
+        <div class="team-pick">
+          <label for="homeTeam">Gospodarz</label>
+          <select id="homeTeam" name="homeTeam" required></select>
+        </div>
+        <div class="team-pick vs-row">
+          <span class="vs-label">vs</span>
+        </div>
+        <div class="team-pick">
+          <label for="awayTeam">Gość</label>
+          <select id="awayTeam" name="awayTeam" required></select>
+        </div>
+
+        <fieldset class="fieldset">
+          <legend>Typ meczu</legend>
+          <label class="radio-line">
+            <input type="radio" name="mode" value="friendly" checked />
+            Towarzyski <span class="hint">— 90 min, remis dozwolony</span>
+          </label>
+          <label class="radio-line">
+            <input type="radio" name="mode" value="tournament" />
+            Turniejowy <span class="hint">— remis wymaga rozstrzygnięcia</span>
+          </label>
+        </fieldset>
+
+        <fieldset class="fieldset tournament-options" id="tournamentOptions" hidden>
+          <legend>Regulamin pucharowy</legend>
+          <label class="check-line">
+            <input type="checkbox" id="extraTime" checked />
+            Dogrywka do 120 minut
+          </label>
+          <label class="check-line">
+            <input type="checkbox" id="goldenGoal" />
+            Złota bramka
+          </label>
+          <label class="check-line">
+            <input type="checkbox" id="penaltiesAfter90" />
+            Karne bezpośrednio po 90 minutach
+          </label>
+        </fieldset>
+
+        <label class="check-line standalone">
+          <input type="checkbox" id="neutralVenue" checked />
+          Boisko neutralne
+        </label>
+
+        <button type="submit" class="btn-simulate" id="simulateBtn">Symuluj mecz</button>
+      </form>
+    </aside>
+
+    <section class="match-view">
+      <div class="scorebug" id="scoreboard">
+        <div class="scorebug-team home">
+          <img class="scorebug-badge" id="boardHomeBadge" alt="" hidden />
+          <span class="scorebug-name" id="boardHome">—</span>
+        </div>
+        <div class="scorebug-center">
+          <div class="scorebug-score">
+            <span id="boardHomeScore">0</span>
+            <span class="scorebug-sep">:</span>
+            <span id="boardAwayScore">0</span>
+          </div>
+          <div class="scorebug-meta">
+            <span class="scorebug-minute" id="boardMinute">0'</span>
+            <span class="scorebug-phase" id="boardPhase">—</span>
+          </div>
+        </div>
+        <div class="scorebug-team away">
+          <img class="scorebug-badge" id="boardAwayBadge" alt="" hidden />
+          <span class="scorebug-name" id="boardAway">—</span>
+        </div>
+      </div>
+
+      <div class="pitch-block">
+        <div class="pitch">
+          <div class="pitch-midline"></div>
+          <div class="pitch-circle"></div>
+          <div class="pitch-box pitch-box-left"></div>
+          <div class="pitch-box pitch-box-right"></div>
+          <div class="goal-markers" id="goalMarkers"></div>
+        </div>
+        <div class="pitch-scale">
+          <span>0'</span>
+          <span>45'</span>
+          <span>90'</span>
+          <span>120'</span>
+        </div>
+        <ul class="pitch-legend">
+          <li><span class="leg-dot leg-reg"></span> regulaminowy</li>
+          <li><span class="leg-dot leg-extra"></span> dogrywka</li>
+          <li><span class="leg-dot leg-golden"></span> złota bramka</li>
+        </ul>
+      </div>
+
+      <div class="commentary">
+        <h2 class="section-title">Relacja na żywo</h2>
+        <div class="commentary-head">
+          <span>Min</span>
+          <span>Zdarzenie</span>
+          <span>Wynik</span>
+        </div>
+        <div class="commentary-list" id="eventFeed">
+          <p class="placeholder">Wybierz drużyny i uruchom symulację.</p>
+        </div>
+      </div>
+    </section>
+
+    <aside class="results">
+      <h2 class="section-title">Podsumowanie</h2>
+      <div id="resultSummary" class="result-empty">Brak wyniku.</div>
+
+      <div id="penaltyPanel" class="penalty-block" hidden>
+        <h3 class="section-title">Rzuty karne</h3>
+        <table class="penalty-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Drużyna</th>
+              <th>Wynik</th>
+            </tr>
+          </thead>
+          <tbody id="penaltyGrid"></tbody>
+        </table>
+        <div class="penalty-total" id="penaltyTotal"></div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="page page-matches" id="panelMatches" role="tabpanel">
+    <aside class="sidebar matches-sidebar">
+      <h2 class="section-title">Mecze</h2>
+
+      <div class="matches-filters">
+        <input
+          type="text"
+          id="matchDate"
+          class="match-date-input"
+          placeholder="DD.MM.RRRR"
+          title="Data meczów"
+          inputmode="numeric"
+          autocomplete="off"
+          maxlength="10"
+          spellcheck="false"
+        />
+        <button type="button" class="btn-secondary" id="loadUpcomingBtn">Nadchodzące</button>
+      </div>
+
+      <p class="matches-source" id="matchesSource">Ładowanie…</p>
+      <ul class="match-list" id="matchList">
+        <li class="placeholder">Ładowanie meczów…</li>
+      </ul>
+    </aside>
+
+    <section class="match-view matches-main">
+      <div class="api-detail-bar" id="apiMatchDetail">
+        <span class="api-detail-empty">Wybierz mecz z listy.</span>
+      </div>
+      <button type="button" class="btn-simulate api-sim-btn" id="simulateFromApiBtn" hidden>
+        Symuluj
+      </button>
+      <div class="scorebug" id="apiScoreboard">
+        <div class="scorebug-team home">
+          <img class="scorebug-badge" id="apiBoardHomeBadge" alt="" hidden />
+          <span class="scorebug-name" id="apiBoardHome">—</span>
+        </div>
+        <div class="scorebug-center">
+          <div class="scorebug-score">
+            <span id="apiBoardHomeScore">—</span>
+            <span class="scorebug-sep">:</span>
+            <span id="apiBoardAwayScore">—</span>
+          </div>
+          <div class="scorebug-meta">
+            <span class="scorebug-minute" id="apiBoardMinute">—</span>
+            <span class="scorebug-phase" id="apiBoardPhase">—</span>
+          </div>
+        </div>
+        <div class="scorebug-team away">
+          <img class="scorebug-badge" id="apiBoardAwayBadge" alt="" hidden />
+          <span class="scorebug-name" id="apiBoardAway">—</span>
+        </div>
+      </div>
+
+      <div class="pitch-block">
+        <div class="pitch">
+          <div class="pitch-midline"></div>
+          <div class="pitch-circle"></div>
+          <div class="pitch-box pitch-box-left"></div>
+          <div class="pitch-box pitch-box-right"></div>
+          <div class="goal-markers" id="apiGoalMarkers"></div>
+        </div>
+        <div class="pitch-scale">
+          <span>0'</span>
+          <span>45'</span>
+          <span>90'</span>
+        </div>
+      </div>
+
+      <div class="commentary">
+        <h2 class="section-title">Przebieg</h2>
+        <div class="commentary-head">
+          <span>Min</span>
+          <span>Zdarzenie</span>
+          <span>Wynik</span>
+        </div>
+        <div class="commentary-list" id="apiEventFeed">
+          <p class="placeholder">Kliknij mecz z listy.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div id="toast" class="toast" role="status"></div>
+  <script src="/static/app.js"></script>
+</body>
+</html>
