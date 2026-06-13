@@ -9,22 +9,72 @@
   <body>
     <div class="app-shell">
       <header class="topbar">
-        <div class="brand">
+        <button id="homeLink" class="brand" type="button" aria-label="Wroc na strone glowna">
           <img src="/static/assets/pitch.svg" alt="" class="brand-mark" />
           <div>
             <h1>World Cup Predictor</h1>
             <p id="statusText">Ladowanie modelu</p>
           </div>
-        </div>
+        </button>
         <nav class="tabs" aria-label="Widoki">
-          <button class="tab-button active" type="button" data-view="matchView">Mecz</button>
+          <button class="tab-button" type="button" data-view="matchView">Mecz</button>
           <button class="tab-button" type="button" data-view="groupsView">Grupy</button>
           <button class="tab-button" type="button" data-view="worldCupView">Turniej</button>
         </nav>
       </header>
 
       <main>
-        <section id="matchView" class="view active" aria-labelledby="matchHeading">
+        <section id="landingView" class="view active landing-view" aria-labelledby="landingHeading">
+          <section class="landing-hero">
+            <div class="landing-hero-content">
+              <p class="landing-kicker">Model predykcyjny i symulacje turnieju</p>
+              <h2 id="landingHeading">World Cup Predictor</h2>
+              <p class="landing-copy">
+                Analizuj szanse meczow, uruchamiaj relacje live, ukladaj grupy
+                i sprawdzaj mozliwe drabinki mistrzostw swiata w jednym miejscu.
+              </p>
+              <div class="landing-actions">
+                <button class="primary-action" type="button" data-landing-target="matchView">
+                  Przejdz do meczu
+                </button>
+                <button class="secondary-action" type="button" data-landing-target="groupsView">
+                  Zobacz grupy
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <section class="landing-overview" aria-label="Co robi aplikacja">
+            <div class="landing-overview-inner">
+              <article class="landing-feature">
+                <span>Mecz</span>
+                <strong>Predykcja i live symulacja</strong>
+                <p>
+                  Porownuje dwie reprezentacje na podstawie danych rankingowych,
+                  pokazuje szanse wyniku i pozwala zasymulowac przebieg spotkania.
+                </p>
+              </article>
+              <article class="landing-feature">
+                <span>Grupy</span>
+                <strong>Awans i trzecie miejsca</strong>
+                <p>
+                  Pozwala edytowac sklady grup, uruchamiac serie symulacji i
+                  sprawdzac, kto najczesciej wychodzi do fazy pucharowej.
+                </p>
+              </article>
+              <article class="landing-feature">
+                <span>Turniej</span>
+                <strong>Drabinka mistrzostw</strong>
+                <p>
+                  Buduje scenariusze fazy pucharowej, wskazuje faworytow i
+                  pokazuje prawdopodobne sciezki do finalu.
+                </p>
+              </article>
+            </div>
+          </section>
+        </section>
+
+        <section id="matchView" class="view" aria-labelledby="matchHeading">
           <div class="workspace-grid">
             <section class="panel controls-panel">
               <div class="panel-header">
@@ -49,10 +99,6 @@
                   Gosc
                   <input id="awayTeam" list="teamsList" autocomplete="off" value="Netherlands" />
                 </label>
-                <label>
-                  Turniej
-                  <input id="matchTournament" value="FIFA World Cup" />
-                </label>
                 <label class="inline-control">
                   <input id="neutralMatch" type="checkbox" checked />
                   Neutralny teren
@@ -70,6 +116,155 @@
               </div>
             </section>
           </div>
+
+          <section id="matchSimulationPanel" class="panel match-simulation-panel">
+            <div class="panel-header split-header">
+              <h2>Symulacja meczu</h2>
+              <button id="rerunMatchSimulation" class="primary-action" type="button">
+                Symuluj mecz
+              </button>
+            </div>
+
+            <div class="match-simulation-layout">
+              <aside class="simulation-settings">
+                <div class="simulation-settings-title"><h2>Ustawienia meczu</h2></div>
+                <div class="simulation-pairing" id="matchSimulationPairing"></div>
+
+                <fieldset class="fieldset">
+                  <legend>Typ meczu</legend>
+                  <label class="choice-line">
+                    <input type="radio" name="matchSimulationMode" value="friendly" checked />
+                    <span>Towarzyski</span>
+                  </label>
+                  <label class="choice-line">
+                    <input type="radio" name="matchSimulationMode" value="tournament" />
+                    <span>Turniejowy</span>
+                  </label>
+                </fieldset>
+
+                <fieldset class="fieldset tournament-options" id="matchTournamentOptions" hidden>
+                  <legend>Regulamin pucharowy</legend>
+                  <label class="choice-line">
+                    <input type="checkbox" id="matchExtraTime" checked />
+                    <span>Dogrywka do 120 minut</span>
+                  </label>
+                  <label class="choice-line">
+                    <input type="checkbox" id="matchGoldenGoal" />
+                    <span>Zlota bramka</span>
+                  </label>
+                  <label class="choice-line">
+                    <input type="checkbox" id="matchPenaltiesAfter90" />
+                    <span>Karne bezposrednio po 90 minutach</span>
+                  </label>
+                </fieldset>
+              </aside>
+
+              <section class="simulation-live">
+                <div class="scorebug" id="matchScoreboard">
+                  <div class="scorebug-team home">
+                    <span class="scorebug-badge" id="matchBoardHomeBadge" aria-hidden="true" hidden></span>
+                    <div class="scorebug-team-stack">
+                      <span class="scorebug-name" id="matchBoardHome">-</span>
+                      <div class="penalty-dots" id="matchHomePenaltyDots" aria-label="Karne gospodarzy" hidden></div>
+                    </div>
+                  </div>
+                  <div class="scorebug-center">
+                    <div class="scorebug-score">
+                      <span id="matchBoardHomeScore">0</span>
+                      <span class="scorebug-sep">:</span>
+                      <span id="matchBoardAwayScore">0</span>
+                    </div>
+                    <div class="scorebug-penalties" id="matchBoardPenaltyNote" hidden></div>
+                    <div class="scorebug-meta">
+                      <span class="scorebug-minute" id="matchBoardMinute">0'</span>
+                      <span id="matchBoardPhase">Przed meczem</span>
+                    </div>
+                  </div>
+                  <div class="scorebug-team away">
+                    <span class="scorebug-badge" id="matchBoardAwayBadge" aria-hidden="true" hidden></span>
+                    <div class="scorebug-team-stack">
+                      <span class="scorebug-name" id="matchBoardAway">-</span>
+                      <div class="penalty-dots" id="matchAwayPenaltyDots" aria-label="Karne gosci" hidden></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="match-clock" aria-live="polite">
+                  <div class="clock-topline">
+                    <h2>Licznik meczu</h2>
+                    <strong id="matchClockLabel">0' / 90'</strong>
+                  </div>
+                  <div class="clock-track" aria-hidden="true">
+                    <span id="matchClockProgress"></span>
+                  </div>
+                  <div class="clock-caption" id="matchClockCaption">
+                    Oczekuje na start symulacji.
+                  </div>
+                </div>
+
+                <div class="pitch-block">
+                  <div class="pitch">
+                    <div class="pitch-midline"></div>
+                    <div class="pitch-circle"></div>
+                    <div class="pitch-box pitch-box-left"></div>
+                    <div class="pitch-box pitch-box-right"></div>
+                    <div class="goal-markers" id="matchGoalMarkers"></div>
+                  </div>
+                  <div class="pitch-scale">
+                    <span>0'</span>
+                    <span>45'</span>
+                    <span>90'</span>
+                    <span>120'</span>
+                  </div>
+                  <ul class="pitch-legend">
+                    <li><span class="leg-dot leg-reg"></span> regulaminowy</li>
+                    <li><span class="leg-dot leg-extra"></span> dogrywka</li>
+                    <li><span class="leg-dot leg-golden"></span> zlota bramka</li>
+                  </ul>
+                </div>
+
+                <div class="commentary">
+                  <div class="panel-header compact-header">
+                    <h2>Relacja na zywo</h2>
+                  </div>
+                  <div class="commentary-head">
+                    <span>Min</span>
+                    <span>Zdarzenie</span>
+                    <span>Wynik</span>
+                  </div>
+                  <div class="commentary-list" id="matchEventFeed">
+                    <p class="placeholder">Najpierw oblicz szanse meczu.</p>
+                  </div>
+                </div>
+              </section>
+
+              <aside class="simulation-results">
+                <div class="panel-header compact-header">
+                  <h2>Podsumowanie</h2>
+                </div>
+                <div id="matchSimulationSummary" class="empty-state">Brak wyniku.</div>
+
+                <div id="matchPenaltyPanel" class="penalty-block" hidden>
+                  <div class="panel-header compact-header">
+                    <h2>Rzuty karne</h2>
+                  </div>
+                  <div class="table-wrap">
+                    <table class="penalty-table">
+                      <thead>
+                        <tr>
+                          <th>#</th>
+                          <th>Druzyna</th>
+                          <th>Wynik</th>
+                        </tr>
+                      </thead>
+                      <tbody id="matchPenaltyGrid"></tbody>
+                    </table>
+                  </div>
+                  <div class="penalty-total" id="matchPenaltyTotal"></div>
+                </div>
+              </aside>
+            </div>
+          </section>
         </section>
 
         <section id="groupsView" class="view" aria-labelledby="groupsHeading">
@@ -198,7 +393,7 @@
                 <h2>Drabinka</h2>
               </div>
               <div id="bracketTree" class="empty-state">
-                Uruchom symulacje turnieju, aby zobaczyc drabinke.
+                Rozklad drabinki pojawi sie po wejsciu w zakladke Turniej.
               </div>
             </section>
           </div>

@@ -12,6 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from data import DATA_DIR_ENV, load_group_matches
+from match_engine import MatchMode, TournamentSettings, simulate_match as simulate_live_match
 from model import evaluate_model, load_or_train_model, predict_match_proba
 from simulator import (
     simulate_group_stage_many_times,
@@ -33,6 +34,17 @@ class MatchRequest(BaseModel):
     away_team: str
     tournament: str = "FIFA World Cup"
     neutral: int = Field(default=1, ge=0, le=1)
+
+
+class MatchSimulationRequest(BaseModel):
+    home_team: str
+    away_team: str
+    mode: str = "friendly"
+    neutral_venue: bool = True
+    extra_time: bool = True
+    golden_goal: bool = False
+    penalties_after_90: bool = False
+    seed: int | None = None
 
 
 class GroupMatchRequest(BaseModel):
@@ -98,6 +110,23 @@ def request_pairings_to_records(pairings: list[R32PairingRequest]) -> list[dict[
     return [model_to_dict(pairing) for pairing in pairings]
 
 
+def build_simulation_team_ratings(latest_team_data: pd.DataFrame) -> dict[str, dict[str, float]]:
+    ratings: dict[str, dict[str, float]] = {}
+    for team, row in latest_team_data.iterrows():
+        fifa_rank = float(row["fifa_rank"])
+        fifa_points = float(row["fifa_points"])
+        point_quality = max(0.0, min(1.0, (fifa_points - 850.0) / 1_050.0))
+        rank_quality = max(0.0, min(1.0, (211.0 - fifa_rank) / 210.0))
+        quality = (point_quality * 0.68) + (rank_quality * 0.32)
+        ratings[str(team)] = {
+            "fifa_rank": fifa_rank,
+            "fifa_points": fifa_points,
+            "attack": 50.0 + quality * 44.0,
+            "defense": 50.0 + quality * 44.0,
+        }
+    return ratings
+
+
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
@@ -140,6 +169,30 @@ def predict_match(request: MatchRequest) -> dict[str, Any]:
             tournament=request.tournament,
             neutral=request.neutral,
         )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/simulate-match")
+def simulate_match_endpoint(request: MatchSimulationRequest) -> dict[str, Any]:
+    try:
+        trained_model = get_trained_model()
+        mode = MatchMode(request.mode)
+        settings = TournamentSettings(
+            extra_time=request.extra_time,
+            golden_goal=request.golden_goal,
+            penalties_after_90=request.penalties_after_90,
+        )
+        result = simulate_live_match(
+            home_team=request.home_team,
+            away_team=request.away_team,
+            mode=mode,
+            settings=settings,
+            neutral_venue=request.neutral_venue,
+            seed=request.seed,
+            team_ratings=build_simulation_team_ratings(trained_model.latest_team_data),
+        )
+        return result.to_dict()
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 

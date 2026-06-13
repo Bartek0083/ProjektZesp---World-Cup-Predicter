@@ -1,30 +1,29 @@
 # World Cup Predictor
 
-Backend FastAPI + statyczny frontend do predykcji meczow i symulacji turnieju.
+Jedna aplikacja FastAPI ze statycznym frontendem do predykcji meczow, symulacji live, grup i turnieju.
 
 ## Uruchomienie lokalne
 
 ```powershell
-
 py -m venv .venv
 .\.venv\Scripts\Activate.ps1
 
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 
-python -m uvicorn api:app --reload
+python run_server.py
 ```
 
-Frontend:
+Adres aplikacji:
 
 ```text
-http://127.0.0.1:8000/
+http://127.0.0.1:8011/
 ```
 
 Dokumentacja API:
 
 ```text
-http://127.0.0.1:8000/docs
+http://127.0.0.1:8011/docs
 ```
 
 Pierwsze wywolanie endpointu trenuje model i zapisuje go do:
@@ -35,22 +34,12 @@ artifacts/world_cup_model.joblib
 
 ## Endpointy
 
+- `GET /health`
 - `GET /teams`
 - `GET /group-matches`
 - `POST /predict-match`
+- `POST /simulate-match`
 - `POST /simulate-group-stage`
 - `POST /simulate-world-cup`
 
-## Moduł symulacji meczu (Jakub Szych)
-
-Folder `world-cup-predictor-symulacja/` — osobna aplikacja: animowany przebieg meczu, tryby towarzyski/turniejowy, mecze z TheSportsDB.
-
-```powershell
-cd world-cup-predictor-symulacja
-py -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
-python -m uvicorn api:app --reload --port 8010
-```
-
-Szczegóły: `world-cup-predictor-symulacja/SPRAWOZDANIE.md`
+Symulacja meczu jest zintegrowana w glownym backendzie. Nie trzeba uruchamiac osobnego serwera ani drugiego portu.

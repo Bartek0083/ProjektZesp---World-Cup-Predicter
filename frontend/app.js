@@ -4,10 +4,37 @@ const state = {
   currentMatches: [],
   latestGroupSummary: null,
   latestGroupPairings: null,
+  latestMatchPrediction: null,
+  matchSimulationTimer: null,
   editTarget: null,
 };
 
 const QUALIFICATION_OUTLINE_THRESHOLD = 50;
+const MATCH_SIM_TICK_MS = 90;
+
+const MATCH_SIM_PHASE_LABELS = {
+  regular: "Regulaminowy czas",
+  extra_first: "Dogrywka I polowa",
+  extra_second: "Dogrywka II polowa",
+  penalties: "Rzuty karne",
+};
+
+const MATCH_SIM_DECIDED_LABELS = {
+  "90_minutes": "Po 90 minutach",
+  extra_time: "Po dogrywce",
+  golden_goal: "Zlota bramka",
+  penalties: "Rzuty karne",
+};
+
+const MATCH_SIM_DISPLAY_EVENTS = new Set([
+  "kickoff",
+  "goal",
+  "golden_goal",
+  "full_time",
+  "phase_start",
+  "penalty_goal",
+  "penalty_miss",
+]);
 
 const TEAM_FLAG_CODES = {
   Afghanistan: "AF",
@@ -294,6 +321,7 @@ const SPECIAL_FLAG_CLASSES = {
 const els = {
   statusText: document.getElementById("statusText"),
   toast: document.getElementById("toast"),
+  homeLink: document.getElementById("homeLink"),
   teamsList: document.getElementById("teamsList"),
   tabs: [...document.querySelectorAll(".tab-button")],
   views: [...document.querySelectorAll(".view")],
@@ -303,6 +331,33 @@ const els = {
   matchTournament: document.getElementById("matchTournament"),
   neutralMatch: document.getElementById("neutralMatch"),
   matchResult: document.getElementById("matchResult"),
+  matchSimulationPanel: document.getElementById("matchSimulationPanel"),
+  matchSimulationPairing: document.getElementById("matchSimulationPairing"),
+  rerunMatchSimulation: document.getElementById("rerunMatchSimulation"),
+  matchTournamentOptions: document.getElementById("matchTournamentOptions"),
+  matchExtraTime: document.getElementById("matchExtraTime"),
+  matchGoldenGoal: document.getElementById("matchGoldenGoal"),
+  matchPenaltiesAfter90: document.getElementById("matchPenaltiesAfter90"),
+  matchBoardHome: document.getElementById("matchBoardHome"),
+  matchBoardAway: document.getElementById("matchBoardAway"),
+  matchBoardHomeBadge: document.getElementById("matchBoardHomeBadge"),
+  matchBoardAwayBadge: document.getElementById("matchBoardAwayBadge"),
+  matchHomePenaltyDots: document.getElementById("matchHomePenaltyDots"),
+  matchAwayPenaltyDots: document.getElementById("matchAwayPenaltyDots"),
+  matchBoardHomeScore: document.getElementById("matchBoardHomeScore"),
+  matchBoardAwayScore: document.getElementById("matchBoardAwayScore"),
+  matchBoardPenaltyNote: document.getElementById("matchBoardPenaltyNote"),
+  matchBoardMinute: document.getElementById("matchBoardMinute"),
+  matchBoardPhase: document.getElementById("matchBoardPhase"),
+  matchClockLabel: document.getElementById("matchClockLabel"),
+  matchClockProgress: document.getElementById("matchClockProgress"),
+  matchClockCaption: document.getElementById("matchClockCaption"),
+  matchGoalMarkers: document.getElementById("matchGoalMarkers"),
+  matchEventFeed: document.getElementById("matchEventFeed"),
+  matchSimulationSummary: document.getElementById("matchSimulationSummary"),
+  matchPenaltyPanel: document.getElementById("matchPenaltyPanel"),
+  matchPenaltyGrid: document.getElementById("matchPenaltyGrid"),
+  matchPenaltyTotal: document.getElementById("matchPenaltyTotal"),
   loadDefaultGroups: document.getElementById("loadDefaultGroups"),
   groupTables: document.getElementById("groupTables"),
   groupSimulationForm: document.getElementById("groupSimulationForm"),
@@ -387,6 +442,10 @@ function formatNumber(value, digits = 2) {
   return Number.isFinite(numberValue) ? numberValue.toFixed(digits) : "-";
 }
 
+function inputValue(input, fallback = "") {
+  return input?.value?.trim() || fallback;
+}
+
 function flagBadge(team) {
   const specialClass = SPECIAL_FLAG_CLASSES[team];
   if (specialClass) {
@@ -413,6 +472,11 @@ function flagBadge(team) {
 }
 
 window.fallbackFlagImage = (img, code) => {
+  const parent = img?.parentElement;
+  if (!parent) {
+    return;
+  }
+
   const attempt = Number(img.dataset.fallbackAttempt || 0);
 
   if (attempt === 0) {
@@ -422,8 +486,8 @@ window.fallbackFlagImage = (img, code) => {
     return;
   }
 
-  img.parentElement.classList.add("flag-fallback");
-  img.parentElement.textContent = code;
+  parent.classList.add("flag-fallback");
+  parent.textContent = code;
 };
 
 function teamInline(team) {
@@ -436,6 +500,9 @@ function teamInline(team) {
 }
 
 function renderProbabilityResult(result) {
+  state.latestMatchPrediction = result;
+  resetMatchSimulationPanel(result.home_team, result.away_team);
+
   const rows = [
     [teamInline(result.home_team), result.home_win * 100, "home"],
     ["Remis", result.draw * 100, "draw"],
@@ -459,6 +526,498 @@ function renderProbabilityResult(result) {
       )
       .join("")}
   `;
+}
+
+function getMatchFormTeams() {
+  return {
+    homeTeam: inputValue(els.homeTeam, "Gospodarz"),
+    awayTeam: inputValue(els.awayTeam, "Gosc"),
+  };
+}
+
+function getMatchSimulationMode() {
+  return document.querySelector('input[name="matchSimulationMode"]:checked')?.value || "friendly";
+}
+
+function updateMatchSimulationModeUI() {
+  els.matchTournamentOptions.hidden = getMatchSimulationMode() !== "tournament";
+}
+
+function stopMatchSimulationAnimation() {
+  if (state.matchSimulationTimer) {
+    clearInterval(state.matchSimulationTimer);
+    state.matchSimulationTimer = null;
+  }
+}
+
+function setMatchScorebugBadge(el, team) {
+  el.innerHTML = flagBadge(team);
+  el.hidden = false;
+}
+
+function setMatchPenaltyNote(score) {
+  if (!score) {
+    els.matchBoardPenaltyNote.hidden = true;
+    els.matchBoardPenaltyNote.textContent = "";
+    return;
+  }
+
+  els.matchBoardPenaltyNote.textContent = `(karne ${score.home}:${score.away})`;
+  els.matchBoardPenaltyNote.hidden = false;
+}
+
+function renderMatchPenaltyDotsForTeam(container, kicks, show) {
+  container.hidden = !show;
+  if (!show) {
+    container.innerHTML = "";
+    return;
+  }
+
+  container.innerHTML = kicks
+    .map((kick) => {
+      const resultClass = kick.scored ? "scored" : "missed";
+      const label = kick.scored ? "Trafiony karny" : "Nietrafiony karny";
+      const title = kick.kick_number ? `${label} #${kick.kick_number}` : label;
+      return `<span class="penalty-dot ${resultClass}" title="${escapeAttr(title)}" aria-label="${escapeAttr(title)}"></span>`;
+    })
+    .join("");
+}
+
+function renderMatchPenaltyDots(result, kicks) {
+  const allKicks = Array.isArray(kicks) ? kicks : [];
+  const show = result.decided_by === "penalties" && allKicks.length > 0;
+  renderMatchPenaltyDotsForTeam(
+    els.matchHomePenaltyDots,
+    allKicks.filter((kick) => kick.team === result.home_team),
+    show,
+  );
+  renderMatchPenaltyDotsForTeam(
+    els.matchAwayPenaltyDots,
+    allKicks.filter((kick) => kick.team === result.away_team),
+    show,
+  );
+}
+
+function clearMatchPenaltyDots() {
+  renderMatchPenaltyDotsForTeam(els.matchHomePenaltyDots, [], false);
+  renderMatchPenaltyDotsForTeam(els.matchAwayPenaltyDots, [], false);
+}
+
+function resetMatchSimulationPanel(homeTeam = null, awayTeam = null) {
+  stopMatchSimulationAnimation();
+  const teams = getMatchFormTeams();
+  const displayHomeTeam = homeTeam || teams.homeTeam;
+  const displayAwayTeam = awayTeam || teams.awayTeam;
+
+  els.matchSimulationPanel.hidden = false;
+  els.matchSimulationPairing.innerHTML = `
+    <span>${teamInline(displayHomeTeam)}</span>
+    <span class="versus">vs</span>
+    <span>${teamInline(displayAwayTeam)}</span>
+  `;
+  els.matchEventFeed.innerHTML = '<p class="placeholder">Oczekuje na start symulacji.</p>';
+  els.matchSimulationSummary.className = "empty-state";
+  els.matchSimulationSummary.textContent = "Brak rozegranego meczu.";
+  els.matchPenaltyPanel.hidden = true;
+  els.matchPenaltyGrid.innerHTML = "";
+  els.matchPenaltyTotal.textContent = "";
+  els.matchGoalMarkers.innerHTML = "";
+  els.matchClockLabel.textContent = "0' / 90'";
+  els.matchClockProgress.style.width = "0";
+  els.matchClockCaption.textContent = "Oczekuje na start symulacji.";
+  els.matchBoardHome.textContent = displayHomeTeam;
+  els.matchBoardAway.textContent = displayAwayTeam;
+  setMatchScorebugBadge(els.matchBoardHomeBadge, displayHomeTeam);
+  setMatchScorebugBadge(els.matchBoardAwayBadge, displayAwayTeam);
+  els.matchBoardHomeScore.textContent = "0";
+  els.matchBoardAwayScore.textContent = "0";
+  els.matchBoardMinute.textContent = "0'";
+  els.matchBoardPhase.textContent = "Przed meczem";
+  setMatchPenaltyNote(null);
+  clearMatchPenaltyDots();
+}
+
+function prepareMatchSimulationPanel(homeTeam, awayTeam) {
+  els.matchSimulationPanel.hidden = false;
+  els.matchSimulationPairing.innerHTML = `
+    <span>${teamInline(homeTeam)}</span>
+    <span class="versus">vs</span>
+    <span>${teamInline(awayTeam)}</span>
+  `;
+  els.matchBoardHome.textContent = homeTeam;
+  els.matchBoardAway.textContent = awayTeam;
+  setMatchScorebugBadge(els.matchBoardHomeBadge, homeTeam);
+  setMatchScorebugBadge(els.matchBoardAwayBadge, awayTeam);
+  els.matchBoardHomeScore.textContent = "0";
+  els.matchBoardAwayScore.textContent = "0";
+  els.matchBoardMinute.textContent = "0'";
+  els.matchBoardPhase.textContent = "Przed meczem";
+  els.matchClockLabel.textContent = "0' / 90'";
+  els.matchClockProgress.style.width = "0";
+  els.matchClockCaption.textContent = "Losuje przebieg meczu.";
+  els.matchEventFeed.innerHTML = '<p class="placeholder">Losuje przebieg meczu...</p>';
+  els.matchSimulationSummary.className = "empty-state";
+  els.matchSimulationSummary.textContent = "Mecz w toku. Podsumowanie pojawi sie po ostatnim gwizdku.";
+  els.matchGoalMarkers.innerHTML = "";
+  els.matchPenaltyPanel.hidden = true;
+  els.matchPenaltyGrid.innerHTML = "";
+  els.matchPenaltyTotal.textContent = "";
+  setMatchPenaltyNote(null);
+  clearMatchPenaltyDots();
+  els.matchSimulationPanel.scrollIntoView({ block: "start", behavior: "smooth" });
+}
+
+function matchMinuteToPercent(minute, phase, maxMinute = 120) {
+  if (phase === "penalties") return 98;
+  return Math.max(1, Math.min(100, (minute / maxMinute) * 100));
+}
+
+function matchMarkerClass(event) {
+  if (event.event_type === "golden_goal") return "golden";
+  if (event.phase === "extra_first" || event.phase === "extra_second") return "extra";
+  return "regular";
+}
+
+function renderMatchGoalMarkers(events, maxMinute) {
+  const goals = events.filter((event) => ["goal", "golden_goal"].includes(event.event_type));
+  els.matchGoalMarkers.innerHTML = goals
+    .map((event) => {
+      const left = matchMinuteToPercent(event.minute, event.phase, maxMinute);
+      const title = `${event.minute}' ${event.team || ""}`;
+      return `<span class="marker ${matchMarkerClass(event)}" style="left:${left}%" title="${escapeAttr(title)}"></span>`;
+    })
+    .join("");
+}
+
+function matchEventRowClass(event) {
+  const parts = [];
+  if (event.event_type === "golden_goal") parts.push("golden");
+  if (["goal", "golden_goal", "penalty_goal"].includes(event.event_type)) parts.push("highlight");
+  if (event.phase === "penalties") parts.push("penalty-row");
+  return parts.join(" ");
+}
+
+function matchEventMinuteLabel(event) {
+  return event.phase === "penalties" ? "K" : `${event.minute}'`;
+}
+
+function matchEventScoreLabel(event) {
+  if (event.home_score == null || event.away_score == null) return "-";
+  return `${event.home_score}:${event.away_score}`;
+}
+
+function matchTeamEventSide(result, event) {
+  if (event.team === result.home_team) return "home";
+  if (event.team === result.away_team) return "away";
+  return "";
+}
+
+function isMatchSideEvent(event) {
+  return ["goal", "golden_goal", "penalty_goal", "penalty_miss"].includes(event.event_type);
+}
+
+function matchDisplayEvents(events) {
+  return events.filter((event) => MATCH_SIM_DISPLAY_EVENTS.has(event.event_type));
+}
+
+function visibleMatchEventsForClock(events, currentMinute, penaltyKickLimit = Infinity) {
+  const visible = [];
+  let penaltyKicks = 0;
+
+  for (const event of matchDisplayEvents(events)) {
+    if (event.phase === "penalties") {
+      if (currentMinute < event.minute) continue;
+      if (event.event_type === "phase_start") {
+        visible.push(event);
+      } else if (penaltyKicks < penaltyKickLimit) {
+        visible.push(event);
+        penaltyKicks += 1;
+      }
+      continue;
+    }
+
+    if (event.minute <= currentMinute) {
+      visible.push(event);
+    }
+  }
+
+  return visible;
+}
+
+function renderMatchEventFeed(result, visibleEvents, currentMinute) {
+  if (!visibleEvents.length) {
+    els.matchEventFeed.innerHTML = `
+      <p class="placeholder">Minuta ${currentMinute}'. Brak zdarzen do pokazania.</p>
+    `;
+    return;
+  }
+
+  els.matchEventFeed.innerHTML = visibleEvents
+    .map((event) => {
+      const side = matchTeamEventSide(result, event);
+      if (side && isMatchSideEvent(event)) {
+        return `
+          <div class="event-row event-sided event-${side} ${matchEventRowClass(event)}">
+            <div class="event-side-card">
+              <div class="event-side-top">
+                <span class="event-minute">${matchEventMinuteLabel(event)}</span>
+                <span class="event-team">${flagBadge(event.team)}${escapeHtml(event.team)}</span>
+                <span class="event-score">${matchEventScoreLabel(event)}</span>
+              </div>
+              <div class="event-desc">${escapeHtml(event.description)}</div>
+            </div>
+          </div>
+        `;
+      }
+
+      return `
+        <div class="event-row ${matchEventRowClass(event)}">
+          <span class="event-minute">${matchEventMinuteLabel(event)}</span>
+          <span class="event-desc">${escapeHtml(event.description)}</span>
+          <span class="event-score">${matchEventScoreLabel(event)}</span>
+        </div>
+      `;
+    })
+    .join("");
+
+  const last = els.matchEventFeed.querySelector(".event-row:last-child");
+  if (last) last.scrollIntoView({ block: "nearest", behavior: "smooth" });
+}
+
+function getMatchSimulationMaxMinute(result) {
+  const goldenGoal = result.events.find((event) => event.event_type === "golden_goal");
+  if (goldenGoal) return goldenGoal.minute;
+
+  const nonPenaltyMinutes = result.events
+    .filter((event) => event.phase !== "penalties")
+    .map((event) => Number(event.minute) || 0);
+  return Math.max(90, ...nonPenaltyMinutes);
+}
+
+function countMatchPenaltyKicks(events) {
+  return events.filter((event) =>
+    event.phase === "penalties" && ["penalty_goal", "penalty_miss"].includes(event.event_type)
+  ).length;
+}
+
+function latestMatchScoreEvent(visibleEvents) {
+  for (let idx = visibleEvents.length - 1; idx >= 0; idx -= 1) {
+    const event = visibleEvents[idx];
+    if (event.home_score != null && event.away_score != null) return event;
+  }
+  return { home_score: 0, away_score: 0, phase: "regular" };
+}
+
+function visibleMatchPenaltyScore(result, visibleEvents) {
+  if (result.decided_by !== "penalties") return null;
+
+  const score = { home: 0, away: 0, hasPenaltyPhase: false };
+  for (const event of visibleEvents) {
+    if (event.phase !== "penalties") continue;
+    score.hasPenaltyPhase = true;
+    if (event.event_type !== "penalty_goal") continue;
+    if (event.team === result.home_team) score.home += 1;
+    if (event.team === result.away_team) score.away += 1;
+  }
+
+  return score.hasPenaltyPhase ? score : null;
+}
+
+function finalMatchPenaltyScore(result) {
+  if (
+    result.decided_by !== "penalties" ||
+    result.home_score_penalties == null ||
+    result.away_score_penalties == null
+  ) {
+    return null;
+  }
+  return { home: result.home_score_penalties, away: result.away_score_penalties };
+}
+
+function visibleMatchPenaltyKicks(visibleEvents) {
+  return visibleEvents
+    .filter((event) =>
+      event.phase === "penalties" && ["penalty_goal", "penalty_miss"].includes(event.event_type)
+    )
+    .map((event) => ({
+      team: event.team,
+      scored: event.event_type === "penalty_goal",
+      kick_number: event.extra?.penalty_kick,
+    }));
+}
+
+function matchPhaseLabelForClock(currentMinute, visibleEvents) {
+  const latest = [...visibleEvents].reverse().find((event) => event.phase);
+  if (latest?.phase === "penalties") return MATCH_SIM_PHASE_LABELS.penalties;
+  if (currentMinute > 105) return MATCH_SIM_PHASE_LABELS.extra_second;
+  if (currentMinute > 90) return MATCH_SIM_PHASE_LABELS.extra_first;
+  return MATCH_SIM_PHASE_LABELS.regular;
+}
+
+function updateMatchClock(currentMinute, maxMinute, caption, isComplete = false) {
+  const progress = maxMinute > 0 ? Math.min(100, (currentMinute / maxMinute) * 100) : 0;
+  els.matchClockLabel.textContent = isComplete ? "Koniec" : `${currentMinute}' / ${maxMinute}'`;
+  els.matchClockProgress.style.width = `${progress}%`;
+  els.matchClockCaption.textContent = caption;
+}
+
+function updateMatchScoreboard(result, visibleEvents, currentMinute, maxMinute, isComplete = false) {
+  const score = latestMatchScoreEvent(visibleEvents);
+  els.matchBoardHome.textContent = result.home_team;
+  els.matchBoardAway.textContent = result.away_team;
+  setMatchScorebugBadge(els.matchBoardHomeBadge, result.home_team);
+  setMatchScorebugBadge(els.matchBoardAwayBadge, result.away_team);
+  els.matchBoardHomeScore.textContent = score.home_score;
+  els.matchBoardAwayScore.textContent = score.away_score;
+  setMatchPenaltyNote(
+    isComplete ? finalMatchPenaltyScore(result) : visibleMatchPenaltyScore(result, visibleEvents),
+  );
+  renderMatchPenaltyDots(
+    result,
+    isComplete ? result.penalty_shootout || [] : visibleMatchPenaltyKicks(visibleEvents),
+  );
+
+  if (isComplete) {
+    els.matchBoardMinute.textContent = "KONIEC";
+    els.matchBoardPhase.textContent = MATCH_SIM_DECIDED_LABELS[result.decided_by] || result.decided_by;
+    updateMatchClock(maxMinute, maxMinute, "Mecz zakonczony.", true);
+    return;
+  }
+
+  const phaseLabel = matchPhaseLabelForClock(currentMinute, visibleEvents);
+  els.matchBoardMinute.textContent = `${currentMinute}'`;
+  els.matchBoardPhase.textContent = phaseLabel;
+  updateMatchClock(currentMinute, maxMinute, phaseLabel);
+}
+
+function renderMatchSimulationSummary(result) {
+  const decided = MATCH_SIM_DECIDED_LABELS[result.decided_by] || result.decided_by;
+  const penaltyScore = finalMatchPenaltyScore(result);
+  const penaltyNoteHtml = penaltyScore
+    ? `<span class="result-penalty-note">(karne ${penaltyScore.home}:${penaltyScore.away})</span>`
+    : "";
+  const penAfter90 = result.home_score_penalties != null
+    ? `<p>Karne: <strong>${result.home_score_penalties}:${result.away_score_penalties}</strong></p>`
+    : "";
+  const winnerHtml = result.winner
+    ? `<p class="result-winner">Zwyciezca: ${teamInline(result.winner)}</p>`
+    : result.is_draw
+      ? '<p class="result-winner">Remis (mecz towarzyski)</p>'
+      : "";
+
+  els.matchSimulationSummary.className = "result-box";
+  els.matchSimulationSummary.innerHTML = `
+    <div class="result-final">
+      <span>${result.home_score_final} : ${result.away_score_final}</span>
+      ${penaltyNoteHtml}
+    </div>
+    <div class="result-meta">
+      <p>Po 90 min: ${result.home_score_90}:${result.away_score_90}</p>
+      <p>Rozstrzygniecie: <strong>${escapeHtml(decided)}</strong></p>
+      <p>Bramki: ${escapeHtml(result.timeline_summary)}</p>
+      ${penAfter90}
+      ${winnerHtml}
+    </div>
+  `;
+
+  if (result.penalty_shootout?.length) {
+    els.matchPenaltyPanel.hidden = false;
+    els.matchPenaltyGrid.innerHTML = result.penalty_shootout
+      .map((kick) => `
+        <tr class="${kick.scored ? "goal" : "miss"}">
+          <td>${kick.kick_number}</td>
+          <td>${teamInline(kick.team)}</td>
+          <td>${kick.scored ? "GOL" : "PUDLO"}</td>
+        </tr>
+      `)
+      .join("");
+    els.matchPenaltyTotal.textContent =
+      `Wynik karnych: ${result.home_score_penalties}:${result.away_score_penalties}`;
+  } else {
+    els.matchPenaltyPanel.hidden = true;
+    els.matchPenaltyGrid.innerHTML = "";
+    els.matchPenaltyTotal.textContent = "";
+  }
+}
+
+function finishMatchSimulation(result, maxMinute, penaltyKickCount) {
+  const visibleEvents = visibleMatchEventsForClock(result.events, maxMinute, penaltyKickCount);
+  renderMatchEventFeed(result, visibleEvents, maxMinute);
+  renderMatchGoalMarkers(visibleEvents, maxMinute);
+  updateMatchScoreboard(result, visibleEvents, maxMinute, maxMinute, true);
+  renderMatchSimulationSummary(result);
+}
+
+function playMatchSimulation(result) {
+  stopMatchSimulationAnimation();
+
+  const maxMinute = getMatchSimulationMaxMinute(result);
+  const penaltyKickCount = countMatchPenaltyKicks(result.events);
+  let currentMinute = 0;
+  let penaltyKicksVisible = 0;
+
+  const renderTick = () => {
+    const visibleEvents = visibleMatchEventsForClock(result.events, currentMinute, penaltyKicksVisible);
+    renderMatchEventFeed(result, visibleEvents, currentMinute);
+    renderMatchGoalMarkers(visibleEvents, maxMinute);
+    updateMatchScoreboard(result, visibleEvents, currentMinute, maxMinute);
+  };
+
+  renderTick();
+
+  state.matchSimulationTimer = setInterval(() => {
+    if (currentMinute < maxMinute) {
+      currentMinute += 1;
+      renderTick();
+      return;
+    }
+
+    if (penaltyKicksVisible < penaltyKickCount) {
+      penaltyKicksVisible += 1;
+      renderTick();
+      return;
+    }
+
+    stopMatchSimulationAnimation();
+    finishMatchSimulation(result, maxMinute, penaltyKickCount);
+  }, MATCH_SIM_TICK_MS);
+}
+
+async function runMatchSimulation(button = null) {
+  const { homeTeam, awayTeam } = getMatchFormTeams();
+  if (!homeTeam || !awayTeam || homeTeam === "Gospodarz" || awayTeam === "Gosc") {
+    showToast("Wybierz druzyny do symulacji.", "error");
+    resetMatchSimulationPanel(homeTeam, awayTeam);
+    return;
+  }
+
+  stopMatchSimulationAnimation();
+  prepareMatchSimulationPanel(homeTeam, awayTeam);
+  setLoading(button, true, "Symuluje");
+
+  try {
+    const payload = await api("/simulate-match", {
+      method: "POST",
+      body: JSON.stringify({
+        home_team: homeTeam,
+        away_team: awayTeam,
+        mode: getMatchSimulationMode(),
+        neutral_venue: els.neutralMatch.checked,
+        extra_time: els.matchExtraTime.checked,
+        golden_goal: els.matchGoldenGoal.checked,
+        penalties_after_90: els.matchPenaltiesAfter90.checked,
+        seed: Math.floor(Math.random() * 100000),
+      }),
+    });
+    playMatchSimulation(payload);
+  } catch (error) {
+    els.matchSimulationSummary.className = "empty-state";
+    els.matchSimulationSummary.textContent = "Nie udalo sie uruchomic symulacji.";
+    els.matchEventFeed.innerHTML = `<p class="placeholder">${escapeHtml(error.message)}</p>`;
+    showToast(error.message, "error");
+  } finally {
+    setLoading(button, false);
+  }
 }
 
 function renderTeamsList(teams) {
@@ -1003,6 +1562,7 @@ function getLatestGroupQualifierPairings() {
 function renderGroupBracketPreviewInto(target, pairings, metaText, metaStrong) {
   const matchById = buildGroupBracketPreviewMatches(pairings);
 
+  delete target.dataset.layoutOnly;
   target.className = "bracket-wrap group-bracket-tree";
   target.innerHTML = `
     <div class="bracket-meta">
@@ -1025,8 +1585,8 @@ function buildGroupBracketPreviewMatches(pairings) {
       match.match_id,
       {
         ...match,
-        home_placeholder: false,
-        away_placeholder: false,
+        home_placeholder: Boolean(match.home_placeholder),
+        away_placeholder: Boolean(match.away_placeholder),
       },
     ]),
   );
@@ -1042,6 +1602,32 @@ function buildGroupBracketPreviewMatches(pairings) {
   }
 
   return matchById;
+}
+
+function renderWorldCupBracketLayout(force = false) {
+  if (
+    !force &&
+    !els.bracketTree.classList.contains("empty-state") &&
+    els.bracketTree.dataset.layoutOnly !== "true"
+  ) {
+    return;
+  }
+
+  const placeholderPairings = R32_SLOTS.map((match) => ({
+    ...match,
+    home_team: match.home_slot,
+    away_team: match.away_slot,
+    home_placeholder: true,
+    away_placeholder: true,
+  }));
+
+  renderGroupBracketPreviewInto(
+    els.bracketTree,
+    placeholderPairings,
+    "Rozklad drabinki turniejowej",
+    "Sloty zostana uzupelnione po symulacji grup lub turnieju",
+  );
+  els.bracketTree.dataset.layoutOnly = "true";
 }
 
 function renderGroupBracketSide(side, matchById) {
@@ -1184,8 +1770,7 @@ function renderCell(row, column) {
 
 function renderBracket(knockoutResults) {
   if (!knockoutResults || knockoutResults.length === 0) {
-    els.bracketTree.className = "empty-state";
-    els.bracketTree.textContent = "Brak danych drabinki.";
+    renderWorldCupBracketLayout(true);
     return;
   }
 
@@ -1198,6 +1783,7 @@ function renderBracket(knockoutResults) {
   const matchById = Object.fromEntries(rows.map((row) => [row.match_id, row]));
   const finalMatch = matchById.FINAL;
 
+  delete els.bracketTree.dataset.layoutOnly;
   els.bracketTree.className = "bracket-wrap";
   els.bracketTree.innerHTML = `
     <div class="bracket-meta">
@@ -1277,6 +1863,9 @@ function escapeAttr(value) {
 function activateView(viewId) {
   els.tabs.forEach((tab) => tab.classList.toggle("active", tab.dataset.view === viewId));
   els.views.forEach((view) => view.classList.toggle("active", view.id === viewId));
+  if (viewId === "worldCupView") {
+    renderWorldCupBracketLayout();
+  }
 }
 
 async function loadInitialData() {
@@ -1297,7 +1886,60 @@ async function loadInitialData() {
 }
 
 els.tabs.forEach((tab) => {
-  tab.addEventListener("click", () => activateView(tab.dataset.view));
+  tab.addEventListener("click", () => {
+    activateView(tab.dataset.view);
+    if (tab.dataset.view === "matchView" && els.matchSimulationPanel.hidden) {
+      resetMatchSimulationPanel();
+    }
+  });
+});
+
+els.homeLink.addEventListener("click", () => {
+  activateView("landingView");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+});
+
+document.querySelectorAll("[data-landing-target]").forEach((button) => {
+  button.addEventListener("click", () => {
+    activateView(button.dataset.landingTarget);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+});
+
+els.rerunMatchSimulation.addEventListener("click", () => {
+  runMatchSimulation(els.rerunMatchSimulation);
+});
+
+[els.homeTeam, els.awayTeam].forEach((input) => {
+  input.addEventListener("change", () => {
+    resetMatchSimulationPanel();
+  });
+});
+
+document.querySelectorAll('input[name="matchSimulationMode"]').forEach((input) => {
+  input.addEventListener("change", updateMatchSimulationModeUI);
+});
+
+els.matchPenaltiesAfter90.addEventListener("change", () => {
+  if (els.matchPenaltiesAfter90.checked) {
+    els.matchExtraTime.checked = false;
+    els.matchGoldenGoal.checked = false;
+  }
+});
+
+els.matchExtraTime.addEventListener("change", () => {
+  if (els.matchExtraTime.checked) {
+    els.matchPenaltiesAfter90.checked = false;
+  } else {
+    els.matchGoldenGoal.checked = false;
+  }
+});
+
+els.matchGoldenGoal.addEventListener("change", () => {
+  if (els.matchGoldenGoal.checked) {
+    els.matchExtraTime.checked = true;
+    els.matchPenaltiesAfter90.checked = false;
+  }
 });
 
 els.matchForm.addEventListener("submit", async (event) => {
@@ -1308,10 +1950,10 @@ els.matchForm.addEventListener("submit", async (event) => {
     const payload = await api("/predict-match", {
       method: "POST",
       body: JSON.stringify({
-        home_team: els.homeTeam.value.trim(),
-        away_team: els.awayTeam.value.trim(),
-        tournament: els.matchTournament.value.trim() || "FIFA World Cup",
-        neutral: els.neutralMatch.checked ? 1 : 0,
+        home_team: inputValue(els.homeTeam),
+        away_team: inputValue(els.awayTeam),
+        tournament: inputValue(els.matchTournament, "FIFA World Cup"),
+        neutral: els.neutralMatch?.checked ? 1 : 0,
       }),
     });
     renderProbabilityResult(payload);
@@ -1524,4 +2166,6 @@ els.worldCupForm.addEventListener("submit", async (event) => {
 });
 
 setupTeamAutocomplete([els.homeTeam, els.awayTeam, els.teamEditorInput]);
+updateMatchSimulationModeUI();
+resetMatchSimulationPanel();
 loadInitialData();
