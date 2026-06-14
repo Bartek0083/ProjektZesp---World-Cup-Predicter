@@ -328,6 +328,8 @@ const els = {
   matchForm: document.getElementById("matchForm"),
   homeTeam: document.getElementById("homeTeam"),
   awayTeam: document.getElementById("awayTeam"),
+  swapMatchTeams: document.getElementById("swapMatchTeams"),
+  teamDropdownButtons: [...document.querySelectorAll("[data-team-dropdown]")],
   matchTournament: document.getElementById("matchTournament"),
   neutralMatch: document.getElementById("neutralMatch"),
   matchResult: document.getElementById("matchResult"),
@@ -444,6 +446,89 @@ function formatNumber(value, digits = 2) {
 
 function inputValue(input, fallback = "") {
   return input?.value?.trim() || fallback;
+}
+
+function sameTeamName(left, right) {
+  const normalizedLeft = normalizeSearchText(left);
+  return normalizedLeft !== "" && normalizedLeft === normalizeSearchText(right);
+}
+
+function getAllGroupTeams() {
+  const teams = [];
+  collectGroupMatches().forEach((match) => {
+    [match.home_team, match.away_team].forEach((team) => {
+      if (team && !teams.some((existingTeam) => sameTeamName(existingTeam, team))) {
+        teams.push(team);
+      }
+    });
+  });
+  return teams;
+}
+
+function getTeamGroup(team) {
+  const normalizedTeam = normalizeSearchText(team);
+  if (!normalizedTeam) {
+    return "";
+  }
+
+  const match = collectGroupMatches().find(
+    (groupMatch) =>
+      normalizeSearchText(groupMatch.home_team) === normalizedTeam ||
+      normalizeSearchText(groupMatch.away_team) === normalizedTeam,
+  );
+  return match?.group || "";
+}
+
+function getTeamAutocompleteExclusions(input) {
+  if (input === els.homeTeam) {
+    return inputValue(els.awayTeam) ? [inputValue(els.awayTeam)] : [];
+  }
+
+  if (input === els.awayTeam) {
+    return inputValue(els.homeTeam) ? [inputValue(els.homeTeam)] : [];
+  }
+
+  if (input === els.teamEditorInput && state.editTarget) {
+    return getAllGroupTeams().filter(
+      (team) => !sameTeamName(team, state.editTarget.team),
+    );
+  }
+
+  return [];
+}
+
+function validateDistinctMatchTeams(homeTeam, awayTeam, message = "Ta sama druzyna nie moze grac przeciwko sobie.") {
+  if (sameTeamName(homeTeam, awayTeam)) {
+    throw new Error(message);
+  }
+}
+
+function validateGroupMatches(matches) {
+  const duplicateMatch = matches.find((match) => sameTeamName(match.home_team, match.away_team));
+  if (duplicateMatch) {
+    throw new Error(
+      `W grupie ${duplicateMatch.group} ta sama druzyna nie moze grac przeciwko sobie.`,
+    );
+  }
+
+  const teamGroups = new Map();
+  for (const match of matches) {
+    for (const team of [match.home_team, match.away_team]) {
+      const teamKey = normalizeSearchText(team);
+      if (!teamKey) {
+        continue;
+      }
+
+      const existing = teamGroups.get(teamKey);
+      if (existing && existing.group !== match.group) {
+        throw new Error(
+          `${existing.team} jest juz w grupie ${existing.group}. Jedna druzyna moze byc tylko w jednej grupie.`,
+        );
+      }
+
+      teamGroups.set(teamKey, { team, group: match.group });
+    }
+  }
 }
 
 function flagBadge(team) {
@@ -991,6 +1076,18 @@ async function runMatchSimulation(button = null) {
     return;
   }
 
+  try {
+    validateDistinctMatchTeams(
+      homeTeam,
+      awayTeam,
+      "Nie mozna przeprowadzic symulacji meczu dla tych samych druzyn.",
+    );
+  } catch (error) {
+    showToast(error.message, "error");
+    resetMatchSimulationPanel(homeTeam, awayTeam);
+    return;
+  }
+
   stopMatchSimulationAnimation();
   prepareMatchSimulationPanel(homeTeam, awayTeam);
   setLoading(button, true, "Symuluje");
@@ -1032,13 +1129,16 @@ function normalizeSearchText(value) {
     .trim();
 }
 
-function getTeamSuggestions(query) {
-  const normalizedQuery = normalizeSearchText(query);
+function getTeamSuggestions(query, excludedTeams = [], showAll = false) {
+  const normalizedQuery = showAll ? "" : normalizeSearchText(query);
+  const excludedKeys = new Set(excludedTeams.map(normalizeSearchText).filter(Boolean));
+  const availableTeams = state.teams.filter((team) => !excludedKeys.has(normalizeSearchText(team)));
+
   if (!normalizedQuery) {
-    return state.teams.slice(0, 12);
+    return showAll ? availableTeams : availableTeams.slice(0, 12);
   }
 
-  return state.teams
+  return availableTeams
     .map((team) => ({
       team,
       normalized: normalizeSearchText(team),
@@ -1067,7 +1167,11 @@ function setupTeamAutocomplete(inputs) {
   });
 
   document.addEventListener("pointerdown", (event) => {
-    if (event.target === autocomplete.input || autocomplete.menu.contains(event.target)) {
+    if (
+      event.target === autocomplete.input ||
+      autocomplete.menu.contains(event.target) ||
+      event.target.closest(".team-dropdown-button")
+    ) {
       return;
     }
     closeAutocomplete();
@@ -1077,14 +1181,20 @@ function setupTeamAutocomplete(inputs) {
   window.addEventListener("scroll", positionAutocomplete, true);
 }
 
-function showAutocomplete(input) {
+function showAutocomplete(input, options = {}) {
   autocomplete.input = input;
-  autocomplete.options = getTeamSuggestions(input.value);
+  autocomplete.options = getTeamSuggestions(
+    input.value,
+    getTeamAutocompleteExclusions(input),
+    Boolean(options.showAll),
+  );
   autocomplete.activeIndex = autocomplete.options.length ? 0 : -1;
 
   if (!autocomplete.options.length) {
     autocomplete.menu.innerHTML = `<div class="autocomplete-empty">Brak druzyn</div>`;
+    autocomplete.menu.style.pointerEvents = "none";
   } else {
+    autocomplete.menu.style.pointerEvents = "auto";
     autocomplete.menu.innerHTML = autocomplete.options
       .map(
         (team, index) => `
@@ -1111,6 +1221,15 @@ function showAutocomplete(input) {
   autocomplete.menu.hidden = false;
 }
 
+function showTeamDropdown(input) {
+  if (!input) {
+    return;
+  }
+
+  input.focus();
+  showAutocomplete(input, { showAll: true });
+}
+
 function positionAutocomplete() {
   if (!autocomplete.input || autocomplete.menu.hidden) {
     return;
@@ -1126,6 +1245,7 @@ function closeAutocomplete() {
   autocomplete.input = null;
   autocomplete.options = [];
   autocomplete.activeIndex = -1;
+  autocomplete.menu.style.pointerEvents = "auto";
   autocomplete.menu.hidden = true;
 }
 
@@ -1209,8 +1329,18 @@ function resetGroupSimulationResults() {
 
 function groupHasTeam(group, team) {
   return collectGroupMatches().some(
-    (match) => match.group === group && (match.home_team === team || match.away_team === team),
+    (match) =>
+      match.group === group &&
+      (sameTeamName(match.home_team, team) || sameTeamName(match.away_team, team)),
   );
+}
+
+function teamExistsInAnotherGroup(team, currentTeam) {
+  if (sameTeamName(team, currentTeam)) {
+    return false;
+  }
+
+  return getAllGroupTeams().some((existingTeam) => sameTeamName(existingTeam, team));
 }
 
 function openTeamEditor(group, team) {
@@ -1910,6 +2040,21 @@ els.rerunMatchSimulation.addEventListener("click", () => {
   runMatchSimulation(els.rerunMatchSimulation);
 });
 
+els.swapMatchTeams.addEventListener("click", () => {
+  const homeTeam = inputValue(els.homeTeam);
+  const awayTeam = inputValue(els.awayTeam);
+  els.homeTeam.value = awayTeam;
+  els.awayTeam.value = homeTeam;
+  resetMatchSimulationPanel(awayTeam, homeTeam);
+  closeAutocomplete();
+});
+
+els.teamDropdownButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    showTeamDropdown(document.getElementById(button.dataset.teamDropdown));
+  });
+});
+
 [els.homeTeam, els.awayTeam].forEach((input) => {
   input.addEventListener("change", () => {
     resetMatchSimulationPanel();
@@ -1945,13 +2090,27 @@ els.matchGoldenGoal.addEventListener("change", () => {
 els.matchForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const button = event.submitter;
+  const { homeTeam, awayTeam } = getMatchFormTeams();
+
+  try {
+    validateDistinctMatchTeams(
+      homeTeam,
+      awayTeam,
+      "Nie mozna przeprowadzic predykcji meczu dla tych samych druzyn.",
+    );
+  } catch (error) {
+    showToast(error.message, "error");
+    resetMatchSimulationPanel(homeTeam, awayTeam);
+    return;
+  }
+
   setLoading(button, true, "Licze");
   try {
     const payload = await api("/predict-match", {
       method: "POST",
       body: JSON.stringify({
-        home_team: inputValue(els.homeTeam),
-        away_team: inputValue(els.awayTeam),
+        home_team: homeTeam,
+        away_team: awayTeam,
         tournament: inputValue(els.matchTournament, "FIFA World Cup"),
         neutral: els.neutralMatch?.checked ? 1 : 0,
       }),
@@ -2010,7 +2169,13 @@ els.teamEditorForm.addEventListener("submit", (event) => {
     return;
   }
 
-  if (newTeam !== oldTeam && groupHasTeam(group, newTeam)) {
+  if (teamExistsInAnotherGroup(newTeam, oldTeam)) {
+    const existingGroup = getTeamGroup(newTeam);
+    showToast(`Ta druzyna jest juz w grupie ${existingGroup}`, "error");
+    return;
+  }
+
+  if (!sameTeamName(newTeam, oldTeam) && groupHasTeam(group, newTeam)) {
     showToast("Ta druzyna juz jest w tej grupie", "error");
     return;
   }
@@ -2026,6 +2191,13 @@ els.groupSimulationForm.addEventListener("submit", async (event) => {
   const matches = collectGroupMatches();
   if (matches.length === 0) {
     showToast("Dodaj przynajmniej jeden mecz", "error");
+    return;
+  }
+
+  try {
+    validateGroupMatches(matches);
+  } catch (error) {
+    showToast(error.message, "error");
     return;
   }
 

@@ -84,6 +84,56 @@ def records(df: pd.DataFrame) -> list[dict[str, Any]]:
     return df.where(pd.notna(df), None).to_dict(orient="records")
 
 
+def normalize_team_name(team: str) -> str:
+    return " ".join(str(team or "").split()).casefold()
+
+
+def ensure_distinct_teams(
+    home_team: str,
+    away_team: str,
+    context: str = "Mecz",
+    message: str | None = None,
+) -> None:
+    if normalize_team_name(home_team) and normalize_team_name(home_team) == normalize_team_name(away_team):
+        raise ValueError(message or f"{context}: ta sama druzyna nie moze grac przeciwko sobie.")
+
+
+def validate_group_match_requests(matches: list[GroupMatchRequest] | None) -> None:
+    if matches is None:
+        return
+
+    team_groups: dict[str, tuple[str, str]] = {}
+    for match in matches:
+        ensure_distinct_teams(
+            match.home_team,
+            match.away_team,
+            context=f"Grupa {match.group}",
+        )
+
+        for team in [match.home_team, match.away_team]:
+            team_key = normalize_team_name(team)
+            if not team_key:
+                continue
+
+            previous = team_groups.get(team_key)
+            if previous is not None and previous[1] != match.group:
+                raise ValueError(
+                    f"{previous[0]} jest juz w grupie {previous[1]}. "
+                    "Jedna druzyna moze byc tylko w jednej grupie."
+                )
+
+            team_groups[team_key] = (team, match.group)
+
+
+def validate_r32_pairing_requests(pairings: list[R32PairingRequest]) -> None:
+    for pairing in pairings:
+        ensure_distinct_teams(
+            pairing.home_team,
+            pairing.away_team,
+            context=f"Mecz {pairing.match_id}",
+        )
+
+
 def get_model_path() -> Path:
     return Path(os.getenv(MODEL_PATH_ENV, DEFAULT_MODEL_PATH)).expanduser().resolve()
 
@@ -103,10 +153,12 @@ def get_trained_model():
 def request_matches_to_df(matches: list[GroupMatchRequest] | None) -> pd.DataFrame:
     if matches is None:
         return load_group_matches(data_dir=get_data_dir())
+    validate_group_match_requests(matches)
     return pd.DataFrame([model_to_dict(match) for match in matches])
 
 
 def request_pairings_to_records(pairings: list[R32PairingRequest]) -> list[dict[str, Any]]:
+    validate_r32_pairing_requests(pairings)
     return [model_to_dict(pairing) for pairing in pairings]
 
 
@@ -161,6 +213,11 @@ def evaluation() -> dict[str, Any]:
 @app.post("/predict-match")
 def predict_match(request: MatchRequest) -> dict[str, Any]:
     try:
+        ensure_distinct_teams(
+            request.home_team,
+            request.away_team,
+            message="Nie mozna przeprowadzic predykcji meczu dla tych samych druzyn.",
+        )
         trained_model = get_trained_model()
         return predict_match_proba(
             trained_model=trained_model,
@@ -176,6 +233,11 @@ def predict_match(request: MatchRequest) -> dict[str, Any]:
 @app.post("/simulate-match")
 def simulate_match_endpoint(request: MatchSimulationRequest) -> dict[str, Any]:
     try:
+        ensure_distinct_teams(
+            request.home_team,
+            request.away_team,
+            message="Nie mozna przeprowadzic symulacji meczu dla tych samych druzyn.",
+        )
         trained_model = get_trained_model()
         mode = MatchMode(request.mode)
         settings = TournamentSettings(
@@ -200,6 +262,7 @@ def simulate_match_endpoint(request: MatchSimulationRequest) -> dict[str, Any]:
 @app.post("/simulate-group-stage")
 def simulate_group_stage(request: GroupStageSimulationRequest) -> dict[str, Any]:
     try:
+        validate_group_match_requests(request.matches)
         trained_model = get_trained_model()
         group_matches = request_matches_to_df(request.matches)
         summary, simulations, group_matches_with_proba = simulate_group_stage_many_times(
@@ -221,6 +284,10 @@ def simulate_group_stage(request: GroupStageSimulationRequest) -> dict[str, Any]
 @app.post("/simulate-world-cup")
 def simulate_world_cup(request: WorldCupSimulationRequest) -> dict[str, Any]:
     try:
+        validate_group_match_requests(request.matches)
+        if request.r32_pairings is not None:
+            validate_r32_pairing_requests(request.r32_pairings)
+
         trained_model = get_trained_model()
         if request.r32_pairings is not None:
             summary, knockout_results = simulate_world_cup_from_r32_pairings_many_times(

@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>World Cup Predictor</title>
-    <link rel="stylesheet" href="/static/styles.css" />
+    <link rel="stylesheet" href="/static/styles.css?v=panel-padding-1" />
   </head>
   <body>
     <div class="app-shell">
@@ -93,16 +93,48 @@
               <form id="matchForm" class="form-grid">
                 <label>
                   Gospodarz
-                  <input id="homeTeam" list="teamsList" autocomplete="off" value="Poland" />
+                  <span class="team-input-wrap">
+                    <input id="homeTeam" list="teamsList" autocomplete="off" value="Poland" />
+                    <button
+                      class="team-dropdown-button"
+                      type="button"
+                      data-team-dropdown="homeTeam"
+                      aria-label="Pokaz liste gospodarzy"
+                    ></button>
+                  </span>
                 </label>
                 <label>
                   Gosc
-                  <input id="awayTeam" list="teamsList" autocomplete="off" value="Netherlands" />
+                  <span class="team-input-wrap">
+                    <input id="awayTeam" list="teamsList" autocomplete="off" value="Netherlands" />
+                    <button
+                      class="team-dropdown-button"
+                      type="button"
+                      data-team-dropdown="awayTeam"
+                      aria-label="Pokaz liste gosci"
+                    ></button>
+                  </span>
                 </label>
-                <label class="inline-control">
-                  <input id="neutralMatch" type="checkbox" checked />
-                  Neutralny teren
-                </label>
+                <div class="match-options-row">
+                  <label class="inline-control">
+                    <input id="neutralMatch" type="checkbox" checked />
+                    Neutralny teren
+                  </label>
+                  <button
+                    id="swapMatchTeams"
+                    class="swap-teams-button"
+                    type="button"
+                    aria-label="Zamien gospodarza z gosciem"
+                    title="Zamien gospodarza z gosciem"
+                  >
+                    <svg class="swap-teams-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                      <path d="M11 7H4" />
+                      <path d="M7 4 4 7l3 3" />
+                      <path d="M13 17h7" />
+                      <path d="m17 14 3 3-3 3" />
+                    </svg>
+                  </button>
+                </div>
                 <button class="primary-action" type="submit">Oblicz</button>
               </form>
             </section>
@@ -192,7 +224,10 @@
                 <div class="match-clock" aria-live="polite">
                   <div class="clock-topline">
                     <h2>Licznik meczu</h2>
-                    <strong id="matchClockLabel">0' / 90'</strong>
+                    <strong class="clock-label">
+                      <span class="clock-icon" aria-hidden="true"></span>
+                      <span id="matchClockLabel">0' / 90'</span>
+                    </strong>
                   </div>
                   <div class="clock-track" aria-hidden="true">
                     <span id="matchClockProgress"></span>
@@ -419,6 +454,6 @@
       </section>
     </div>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
-    <script src="/static/app.js"></script>
+    <script src="/static/app.js?v=panel-padding-1"></script>
   </body>
 </html>
