@@ -3932,6 +3932,10 @@ th {
   grid-row: 1;
 }
 
+#worldCupView .controls-panel .panel-header {
+  justify-content: center;
+}
+
 #worldCupView .bracket-panel {
   grid-column: 2;
   grid-row: 1;
@@ -4108,7 +4112,7 @@ th {
 
 /* Tournament bracket: fit the full tree inside the panel at normal browser zoom. */
 #worldCupView .world-layout {
-  grid-template-columns: minmax(250px, 300px) minmax(720px, 1fr) minmax(190px, 230px);
+  grid-template-columns: minmax(260px, 300px) minmax(620px, 1fr) minmax(300px, 360px);
 }
 
 #worldCupView .bracket-panel .bracket-wrap {
@@ -4273,7 +4277,7 @@ th {
 
 @media (max-width: 1180px) {
   #worldCupView .world-layout {
-    grid-template-columns: minmax(230px, 280px) minmax(650px, 1fr) minmax(180px, 220px);
+    grid-template-columns: minmax(240px, 270px) minmax(560px, 1fr) minmax(280px, 320px);
   }
 
   #worldCupView .bracket-side {
@@ -4378,13 +4382,60 @@ th {
 }
 
 #worldCupView .controls-panel .info-block {
-  margin: 18px 20px 0;
-  padding: 17px 17px;
-  gap: 9px;
+  margin: 18px;
+  padding: 14px;
+  gap: 6px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.38), rgba(255, 255, 255, 0.16));
+  border-color: rgba(255, 255, 255, 0.36);
+  border-left-color: rgba(255, 255, 255, 0.36);
 }
 
 #worldCupView .controls-panel .info-block p {
-  line-height: 1.48;
+  line-height: 1.45;
+}
+
+#worldCupSummary.table-wrap {
+  overflow-x: hidden;
+}
+
+#worldCupSummary .summary-table {
+  table-layout: fixed;
+}
+
+#worldCupSummary .rank-cell {
+  width: 34px;
+  padding-inline: 8px;
+}
+
+#worldCupSummary .summary-table th,
+#worldCupSummary .summary-table td {
+  padding: 8px 9px;
+}
+
+#worldCupSummary .summary-table th:nth-child(2),
+#worldCupSummary .summary-table td:nth-child(2) {
+  width: 42%;
+}
+
+#worldCupSummary .summary-table th:nth-child(3),
+#worldCupSummary .summary-table td:nth-child(3),
+#worldCupSummary .summary-table th:nth-child(4),
+#worldCupSummary .summary-table td:nth-child(4) {
+  width: 22%;
+}
+
+#worldCupSummary .team-with-bar {
+  gap: 5px;
+}
+
+#worldCupSummary .team-inline {
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 7px;
+}
+
+#worldCupSummary .flag-badge {
+  width: 22px;
+  height: 16px;
 }
 
 #groupsView .side-stack > .controls-panel .run-bar label {

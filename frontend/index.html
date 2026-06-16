@@ -4,16 +4,16 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>World Cup Predictor</title>
-    <link rel="stylesheet" href="/static/styles.css?v=panel-padding-1" />
+    <link rel="stylesheet" href="/static/styles.css?v=turniej-info-box-1" />
   </head>
   <body>
     <div class="app-shell">
       <header class="topbar">
-        <button id="homeLink" class="brand" type="button" aria-label="Wroc na strone glowna">
+        <button id="homeLink" class="brand" type="button" aria-label="Wróć na stronę główną">
           <img src="/static/assets/pitch.svg" alt="" class="brand-mark" />
           <div>
             <h1>World Cup Predictor</h1>
-            <p id="statusText">Ladowanie modelu</p>
+            <p id="statusText">Ładowanie modelu</p>
           </div>
         </button>
         <nav class="tabs" aria-label="Widoki">
@@ -30,15 +30,15 @@
               <p class="landing-kicker">Model predykcyjny i symulacje turnieju</p>
               <h2 id="landingHeading">World Cup Predictor</h2>
               <p class="landing-copy">
-                Analizuj szanse meczow, uruchamiaj relacje live, ukladaj grupy
-                i sprawdzaj mozliwe drabinki mistrzostw swiata w jednym miejscu.
+                Analizuj szanse meczów, uruchamiaj relacje na żywo, układaj grupy
+                i sprawdzaj możliwe drabinki mistrzostw świata w jednym miejscu.
               </p>
               <div class="landing-actions">
                 <button class="primary-action" type="button" data-landing-target="matchView">
-                  Przejdz do meczu
+                  Zasymuluj mecz
                 </button>
                 <button class="secondary-action" type="button" data-landing-target="groupsView">
-                  Zobacz grupy
+                  Symuluj grupy z WorldCup2026
                 </button>
               </div>
             </div>
@@ -48,26 +48,26 @@
             <div class="landing-overview-inner">
               <article class="landing-feature">
                 <span>Mecz</span>
-                <strong>Predykcja i live symulacja</strong>
+                <strong>Predykcja i symulacja na żywo</strong>
                 <p>
-                  Porownuje dwie reprezentacje na podstawie danych rankingowych,
-                  pokazuje szanse wyniku i pozwala zasymulowac przebieg spotkania.
+                  Porównuje dwie reprezentacje na podstawie danych rankingowych,
+                  pokazuje szanse wyniku i pozwala zasymulować przebieg spotkania.
                 </p>
               </article>
               <article class="landing-feature">
                 <span>Grupy</span>
                 <strong>Awans i trzecie miejsca</strong>
                 <p>
-                  Pozwala edytowac sklady grup, uruchamiac serie symulacji i
-                  sprawdzac, kto najczesciej wychodzi do fazy pucharowej.
+                  Pozwala edytować składy grup, uruchamiać serie symulacji i
+                  sprawdzać, kto najczęściej wychodzi do fazy pucharowej.
                 </p>
               </article>
               <article class="landing-feature">
                 <span>Turniej</span>
                 <strong>Drabinka mistrzostw</strong>
                 <p>
-                  Buduje scenariusze fazy pucharowej, wskazuje faworytow i
-                  pokazuje prawdopodobne sciezki do finalu.
+                  Buduje scenariusze fazy pucharowej, wskazuje faworytów i
+                  pokazuje prawdopodobne ścieżki do finału.
                 </p>
               </article>
             </div>
@@ -85,7 +85,7 @@
                 <strong>Co pokazuje predykcja?</strong>
                 <p>
                   Szanse wyniku po 90 minutach. Model bazuje na rankingu FIFA,
-                  punktach FIFA, roznicy rankingu i punktow, rodzaju turnieju oraz
+                  punktach FIFA, różnicy rankingu i punktów, rodzaju turnieju oraz
                   informacji, czy mecz jest grany na neutralnym terenie.
                 </p>
               </div>
@@ -99,19 +99,19 @@
                       class="team-dropdown-button"
                       type="button"
                       data-team-dropdown="homeTeam"
-                      aria-label="Pokaz liste gospodarzy"
+                      aria-label="Pokaż listę gospodarzy"
                     ></button>
                   </span>
                 </label>
                 <label>
-                  Gosc
+                  Gość
                   <span class="team-input-wrap">
                     <input id="awayTeam" list="teamsList" autocomplete="off" value="Netherlands" />
                     <button
                       class="team-dropdown-button"
                       type="button"
                       data-team-dropdown="awayTeam"
-                      aria-label="Pokaz liste gosci"
+                      aria-label="Pokaż listę gości"
                     ></button>
                   </span>
                 </label>
@@ -124,8 +124,8 @@
                     id="swapMatchTeams"
                     class="swap-teams-button"
                     type="button"
-                    aria-label="Zamien gospodarza z gosciem"
-                    title="Zamien gospodarza z gosciem"
+                    aria-label="Zamień gospodarza z gościem"
+                    title="Zamień gospodarza z gościem"
                   >
                     <svg class="swap-teams-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                       <path d="M11 7H4" />
@@ -144,7 +144,7 @@
                 <h2>Szanse</h2>
               </div>
               <div id="matchResult" class="probability-stack empty-state">
-                Wybierz druzyny i uruchom predykcje.
+                Wybierz drużyny i uruchom predykcję.
               </div>
             </section>
           </div>
@@ -182,11 +182,11 @@
                   </label>
                   <label class="choice-line">
                     <input type="checkbox" id="matchGoldenGoal" />
-                    <span>Zlota bramka</span>
+                    <span>Złota bramka</span>
                   </label>
                   <label class="choice-line">
                     <input type="checkbox" id="matchPenaltiesAfter90" />
-                    <span>Karne bezposrednio po 90 minutach</span>
+                    <span>Karne bezpośrednio po 90 minutach</span>
                   </label>
                 </fieldset>
               </aside>
@@ -216,7 +216,7 @@
                     <span class="scorebug-badge" id="matchBoardAwayBadge" aria-hidden="true" hidden></span>
                     <div class="scorebug-team-stack">
                       <span class="scorebug-name" id="matchBoardAway">-</span>
-                      <div class="penalty-dots" id="matchAwayPenaltyDots" aria-label="Karne gosci" hidden></div>
+                      <div class="penalty-dots" id="matchAwayPenaltyDots" aria-label="Karne gości" hidden></div>
                     </div>
                   </div>
                 </div>
@@ -233,7 +233,7 @@
                     <span id="matchClockProgress"></span>
                   </div>
                   <div class="clock-caption" id="matchClockCaption">
-                    Oczekuje na start symulacji.
+                    Oczekuję na start symulacji.
                   </div>
                 </div>
 
@@ -254,13 +254,13 @@
                   <ul class="pitch-legend">
                     <li><span class="leg-dot leg-reg"></span> regulaminowy</li>
                     <li><span class="leg-dot leg-extra"></span> dogrywka</li>
-                    <li><span class="leg-dot leg-golden"></span> zlota bramka</li>
+                    <li><span class="leg-dot leg-golden"></span> złota bramka</li>
                   </ul>
                 </div>
 
                 <div class="commentary">
                   <div class="panel-header compact-header">
-                    <h2>Relacja na zywo</h2>
+                    <h2>Relacja na żywo</h2>
                   </div>
                   <div class="commentary-head">
                     <span>Min</span>
@@ -288,7 +288,7 @@
                       <thead>
                         <tr>
                           <th>#</th>
-                          <th>Druzyna</th>
+                          <th>Drużyna</th>
                           <th>Wynik</th>
                         </tr>
                       </thead>
@@ -308,7 +308,7 @@
               <div class="panel-header split-header">
                 <h2 id="groupsHeading">Tabele grup</h2>
                 <div class="button-row">
-                  <button id="loadDefaultGroups" class="secondary-action" type="button">Domyslne</button>
+                  <button id="loadDefaultGroups" class="secondary-action" type="button">Domyślne</button>
                 </div>
               </div>
               <div id="groupTables" class="group-tables-grid"></div>
@@ -321,19 +321,19 @@
                 </div>
 
                 <div class="info-block">
-                  <strong>Jak dziala ta zakladka?</strong>
+                  <strong>Jak działa ta zakładka?</strong>
                   <p>
-                    Edytujesz sklady grup w tabelach po lewej, a potem uruchamiasz
-                    wiele symulacji meczow grupowych. Aplikacja liczy szanse awansu,
-                    porownuje trzecie miejsca i moze pokazac podglad ukladu 1/16 finalu.
+                    Edytujesz składy grup w tabelach po lewej, a potem uruchamiasz
+                    wiele symulacji meczów grupowych. Aplikacja liczy szanse awansu,
+                    porównuje trzecie miejsca i może pokazać podgląd układu 1/16 finału.
                   </p>
                 </div>
 
                 <div class="info-block group-edit-info">
-                  <strong>Edycja druzyn</strong>
+                  <strong>Edycja drużyn</strong>
                   <p>
-                    Najedz na panstwo w tabeli, aby je powiekszyc. Kliknij panstwo,
-                    wybierz nowa reprezentacje i zapisz zmiane dla calej grupy.
+                    Najedź na państwo w tabeli, aby je powiększyć. Kliknij państwo,
+                    wybierz nową reprezentację i zapisz zmianę dla całej grupy.
                   </p>
                 </div>
 
@@ -354,7 +354,7 @@
                   </button>
                 </div>
                 <div id="thirdPlaceSummary" class="empty-state">
-                  Uruchom symulacje grup.
+                  Uruchom symulację grup.
                 </div>
               </section>
 
@@ -363,7 +363,7 @@
                   <h2>Awans z grupy</h2>
                 </div>
                 <div id="groupSummary" class="empty-state">
-                  Brak wynikow symulacji.
+                  Brak wyników symulacji.
                 </div>
               </section>
             </div>
@@ -392,12 +392,12 @@
               <div class="info-block">
                 <strong>Co pokazuje symulacja?</strong>
                 <p>
-                  Symulacja turnieju uruchamia wiele mozliwych przebiegow fazy
+                  Symulacja turnieju uruchamia wiele możliwych przebiegów fazy
                   pucharowej, a tabelka Faworyci pokazuje reprezentacje z
-                  najwieksza szansa na wygranie turnieju. Gdy opcja uzycia
-                  druzyn z ostatniej symulacji grup jest zaznaczona, turniej
-                  startuje tylko od zespolow z miejsc 1-2 i najlepszych trzecich
-                  miejsc widocznych w podgladzie 1/16 finalu.
+                  największą szansą na wygranie turnieju. Gdy opcja użycia
+                  drużyn z ostatniej symulacji grup jest zaznaczona, turniej
+                  startuje tylko od zespołów z miejsc 1-2 i najlepszych trzecich
+                  miejsc widocznych w podglądzie 1/16 finału.
                 </p>
               </div>
 
@@ -408,7 +408,7 @@
                 </label>
                 <label class="inline-control">
                   <input id="useEditedGroups" type="checkbox" checked />
-                  Uzyj druzyn z najwieksza szansa na wyjscie z grupy
+                  Użyj drużyn z największą szansą na wyjście z grupy
                 </label>
                 <button class="primary-action" type="submit">Symuluj turniej</button>
               </form>
@@ -419,7 +419,7 @@
                 <h2>Faworyci</h2>
               </div>
               <div id="worldCupSummary" class="empty-state">
-                Brak wynikow symulacji.
+                Brak wyników symulacji.
               </div>
             </section>
 
@@ -428,7 +428,7 @@
                 <h2>Drabinka</h2>
               </div>
               <div id="bracketTree" class="empty-state">
-                Rozklad drabinki pojawi sie po wejsciu w zakladke Turniej.
+                Rozkład drabinki pojawi się po wejściu w zakładkę Turniej.
               </div>
             </section>
           </div>
@@ -440,20 +440,20 @@
     <div id="teamEditorOverlay" class="modal-overlay" hidden>
       <section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="teamEditorTitle">
         <div class="panel-header split-header">
-          <h2 id="teamEditorTitle">Zmien druzyne</h2>
+          <h2 id="teamEditorTitle">Zmień drużynę</h2>
           <button id="closeTeamEditor" class="icon-action" type="button" aria-label="Zamknij">x</button>
         </div>
         <form id="teamEditorForm" class="form-grid">
           <div id="teamEditorCurrent" class="selected-team-preview"></div>
           <label>
-            Nowa druzyna
+            Nowa drużyna
             <input id="teamEditorInput" list="teamsList" autocomplete="off" />
           </label>
-          <button class="primary-action" type="submit">Zapisz zmiane</button>
+          <button class="primary-action" type="submit">Zapisz zmianę</button>
         </form>
       </section>
     </div>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
-    <script src="/static/app.js?v=panel-padding-1"></script>
+    <script src="/static/app.js?v=turniej-info-box-1"></script>
   </body>
 </html>

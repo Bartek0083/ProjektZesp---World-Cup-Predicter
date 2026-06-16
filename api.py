@@ -95,7 +95,7 @@ def ensure_distinct_teams(
     message: str | None = None,
 ) -> None:
     if normalize_team_name(home_team) and normalize_team_name(home_team) == normalize_team_name(away_team):
-        raise ValueError(message or f"{context}: ta sama druzyna nie moze grac przeciwko sobie.")
+        raise ValueError(message or f"{context}: ta sama drużyna nie może grać przeciwko sobie.")
 
 
 def validate_group_match_requests(matches: list[GroupMatchRequest] | None) -> None:
@@ -118,8 +118,8 @@ def validate_group_match_requests(matches: list[GroupMatchRequest] | None) -> No
             previous = team_groups.get(team_key)
             if previous is not None and previous[1] != match.group:
                 raise ValueError(
-                    f"{previous[0]} jest juz w grupie {previous[1]}. "
-                    "Jedna druzyna moze byc tylko w jednej grupie."
+                    f"{previous[0]} jest już w grupie {previous[1]}. "
+                    "Jedna drużyna może być tylko w jednej grupie."
                 )
 
             team_groups[team_key] = (team, match.group)
@@ -216,7 +216,7 @@ def predict_match(request: MatchRequest) -> dict[str, Any]:
         ensure_distinct_teams(
             request.home_team,
             request.away_team,
-            message="Nie mozna przeprowadzic predykcji meczu dla tych samych druzyn.",
+            message="Nie można przeprowadzić predykcji meczu dla tych samych drużyn.",
         )
         trained_model = get_trained_model()
         return predict_match_proba(
@@ -236,7 +236,7 @@ def simulate_match_endpoint(request: MatchSimulationRequest) -> dict[str, Any]:
         ensure_distinct_teams(
             request.home_team,
             request.away_team,
-            message="Nie mozna przeprowadzic symulacji meczu dla tych samych druzyn.",
+            message="Nie można przeprowadzić symulacji meczu dla tych samych drużyn.",
         )
         trained_model = get_trained_model()
         mode = MatchMode(request.mode)

@@ -14,15 +14,15 @@ const MATCH_SIM_TICK_MS = 90;
 
 const MATCH_SIM_PHASE_LABELS = {
   regular: "Regulaminowy czas",
-  extra_first: "Dogrywka I polowa",
-  extra_second: "Dogrywka II polowa",
+  extra_first: "Dogrywka I połowa",
+  extra_second: "Dogrywka II połowa",
   penalties: "Rzuty karne",
 };
 
 const MATCH_SIM_DECIDED_LABELS = {
   "90_minutes": "Po 90 minutach",
   extra_time: "Po dogrywce",
-  golden_goal: "Zlota bramka",
+  golden_goal: "Złota bramka",
   penalties: "Rzuty karne",
 };
 
@@ -247,16 +247,16 @@ const TEAM_FLAG_CODES = {
 
 const BRACKET_SIDES = {
   left: [
-    { label: "1/16 finalu", ids: ["R32_03", "R32_06", "R32_01", "R32_04", "R32_12", "R32_11", "R32_10", "R32_09"], depth: 0 },
-    { label: "1/8 finalu", ids: ["R16_01", "R16_02", "R16_05", "R16_06"], depth: 1 },
-    { label: "Cwiercfinaly", ids: ["QF_01", "QF_02"], depth: 2 },
-    { label: "Polfinal", ids: ["SF_01"], depth: 3 },
+    { label: "1/16 finału", ids: ["R32_03", "R32_06", "R32_01", "R32_04", "R32_12", "R32_11", "R32_10", "R32_09"], depth: 0 },
+    { label: "1/8 finału", ids: ["R16_01", "R16_02", "R16_05", "R16_06"], depth: 1 },
+    { label: "Ćwierćfinały", ids: ["QF_01", "QF_02"], depth: 2 },
+    { label: "Półfinał", ids: ["SF_01"], depth: 3 },
   ],
   right: [
-    { label: "Polfinal", ids: ["SF_02"], depth: 3 },
-    { label: "Cwiercfinaly", ids: ["QF_03", "QF_04"], depth: 2 },
-    { label: "1/8 finalu", ids: ["R16_03", "R16_04", "R16_07", "R16_08"], depth: 1 },
-    { label: "1/16 finalu", ids: ["R32_02", "R32_05", "R32_07", "R32_08", "R32_15", "R32_14", "R32_13", "R32_16"], depth: 0 },
+    { label: "Półfinał", ids: ["SF_02"], depth: 3 },
+    { label: "Ćwierćfinały", ids: ["QF_03", "QF_04"], depth: 2 },
+    { label: "1/8 finału", ids: ["R16_03", "R16_04", "R16_07", "R16_08"], depth: 1 },
+    { label: "1/16 finału", ids: ["R32_02", "R32_05", "R32_07", "R32_08", "R32_15", "R32_14", "R32_13", "R32_16"], depth: 0 },
   ],
 };
 
@@ -497,7 +497,7 @@ function getTeamAutocompleteExclusions(input) {
   return [];
 }
 
-function validateDistinctMatchTeams(homeTeam, awayTeam, message = "Ta sama druzyna nie moze grac przeciwko sobie.") {
+function validateDistinctMatchTeams(homeTeam, awayTeam, message = "Ta sama drużyna nie może grać przeciwko sobie.") {
   if (sameTeamName(homeTeam, awayTeam)) {
     throw new Error(message);
   }
@@ -507,7 +507,7 @@ function validateGroupMatches(matches) {
   const duplicateMatch = matches.find((match) => sameTeamName(match.home_team, match.away_team));
   if (duplicateMatch) {
     throw new Error(
-      `W grupie ${duplicateMatch.group} ta sama druzyna nie moze grac przeciwko sobie.`,
+      `W grupie ${duplicateMatch.group} ta sama drużyna nie może grać przeciwko sobie.`,
     );
   }
 
@@ -522,7 +522,7 @@ function validateGroupMatches(matches) {
       const existing = teamGroups.get(teamKey);
       if (existing && existing.group !== match.group) {
         throw new Error(
-          `${existing.team} jest juz w grupie ${existing.group}. Jedna druzyna moze byc tylko w jednej grupie.`,
+          `${existing.team} jest już w grupie ${existing.group}. Jedna drużyna może być tylko w jednej grupie.`,
         );
       }
 
@@ -616,7 +616,7 @@ function renderProbabilityResult(result) {
 function getMatchFormTeams() {
   return {
     homeTeam: inputValue(els.homeTeam, "Gospodarz"),
-    awayTeam: inputValue(els.awayTeam, "Gosc"),
+    awayTeam: inputValue(els.awayTeam, "Gość"),
   };
 }
 
@@ -700,7 +700,7 @@ function resetMatchSimulationPanel(homeTeam = null, awayTeam = null) {
     <span class="versus">vs</span>
     <span>${teamInline(displayAwayTeam)}</span>
   `;
-  els.matchEventFeed.innerHTML = '<p class="placeholder">Oczekuje na start symulacji.</p>';
+  els.matchEventFeed.innerHTML = '<p class="placeholder">Oczekuję na start symulacji.</p>';
   els.matchSimulationSummary.className = "empty-state";
   els.matchSimulationSummary.textContent = "Brak rozegranego meczu.";
   els.matchPenaltyPanel.hidden = true;
@@ -709,7 +709,7 @@ function resetMatchSimulationPanel(homeTeam = null, awayTeam = null) {
   els.matchGoalMarkers.innerHTML = "";
   els.matchClockLabel.textContent = "0' / 90'";
   els.matchClockProgress.style.width = "0";
-  els.matchClockCaption.textContent = "Oczekuje na start symulacji.";
+  els.matchClockCaption.textContent = "Oczekuję na start symulacji.";
   els.matchBoardHome.textContent = displayHomeTeam;
   els.matchBoardAway.textContent = displayAwayTeam;
   setMatchScorebugBadge(els.matchBoardHomeBadge, displayHomeTeam);
@@ -739,10 +739,10 @@ function prepareMatchSimulationPanel(homeTeam, awayTeam) {
   els.matchBoardPhase.textContent = "Przed meczem";
   els.matchClockLabel.textContent = "0' / 90'";
   els.matchClockProgress.style.width = "0";
-  els.matchClockCaption.textContent = "Losuje przebieg meczu.";
-  els.matchEventFeed.innerHTML = '<p class="placeholder">Losuje przebieg meczu...</p>';
+  els.matchClockCaption.textContent = "Losuję przebieg meczu.";
+  els.matchEventFeed.innerHTML = '<p class="placeholder">Losuję przebieg meczu...</p>';
   els.matchSimulationSummary.className = "empty-state";
-  els.matchSimulationSummary.textContent = "Mecz w toku. Podsumowanie pojawi sie po ostatnim gwizdku.";
+  els.matchSimulationSummary.textContent = "Mecz w toku. Podsumowanie pojawi się po ostatnim gwizdku.";
   els.matchGoalMarkers.innerHTML = "";
   els.matchPenaltyPanel.hidden = true;
   els.matchPenaltyGrid.innerHTML = "";
@@ -832,7 +832,7 @@ function visibleMatchEventsForClock(events, currentMinute, penaltyKickLimit = In
 function renderMatchEventFeed(result, visibleEvents, currentMinute) {
   if (!visibleEvents.length) {
     els.matchEventFeed.innerHTML = `
-      <p class="placeholder">Minuta ${currentMinute}'. Brak zdarzen do pokazania.</p>
+      <p class="placeholder">Minuta ${currentMinute}'. Brak zdarzeń do pokazania.</p>
     `;
     return;
   }
@@ -965,7 +965,7 @@ function updateMatchScoreboard(result, visibleEvents, currentMinute, maxMinute, 
   if (isComplete) {
     els.matchBoardMinute.textContent = "KONIEC";
     els.matchBoardPhase.textContent = MATCH_SIM_DECIDED_LABELS[result.decided_by] || result.decided_by;
-    updateMatchClock(maxMinute, maxMinute, "Mecz zakonczony.", true);
+    updateMatchClock(maxMinute, maxMinute, "Mecz zakończony.", true);
     return;
   }
 
@@ -985,7 +985,7 @@ function renderMatchSimulationSummary(result) {
     ? `<p>Karne: <strong>${result.home_score_penalties}:${result.away_score_penalties}</strong></p>`
     : "";
   const winnerHtml = result.winner
-    ? `<p class="result-winner">Zwyciezca: ${teamInline(result.winner)}</p>`
+    ? `<p class="result-winner">Zwycięzca: ${teamInline(result.winner)}</p>`
     : result.is_draw
       ? '<p class="result-winner">Remis (mecz towarzyski)</p>'
       : "";
@@ -998,7 +998,7 @@ function renderMatchSimulationSummary(result) {
     </div>
     <div class="result-meta">
       <p>Po 90 min: ${result.home_score_90}:${result.away_score_90}</p>
-      <p>Rozstrzygniecie: <strong>${escapeHtml(decided)}</strong></p>
+      <p>Rozstrzygnięcie: <strong>${escapeHtml(decided)}</strong></p>
       <p>Bramki: ${escapeHtml(result.timeline_summary)}</p>
       ${penAfter90}
       ${winnerHtml}
@@ -1012,7 +1012,7 @@ function renderMatchSimulationSummary(result) {
         <tr class="${kick.scored ? "goal" : "miss"}">
           <td>${kick.kick_number}</td>
           <td>${teamInline(kick.team)}</td>
-          <td>${kick.scored ? "GOL" : "PUDLO"}</td>
+          <td>${kick.scored ? "GOL" : "PUDŁO"}</td>
         </tr>
       `)
       .join("");
@@ -1070,8 +1070,8 @@ function playMatchSimulation(result) {
 
 async function runMatchSimulation(button = null) {
   const { homeTeam, awayTeam } = getMatchFormTeams();
-  if (!homeTeam || !awayTeam || homeTeam === "Gospodarz" || awayTeam === "Gosc") {
-    showToast("Wybierz druzyny do symulacji.", "error");
+  if (!homeTeam || !awayTeam || homeTeam === "Gospodarz" || awayTeam === "Gość") {
+    showToast("Wybierz drużyny do symulacji.", "error");
     resetMatchSimulationPanel(homeTeam, awayTeam);
     return;
   }
@@ -1080,7 +1080,7 @@ async function runMatchSimulation(button = null) {
     validateDistinctMatchTeams(
       homeTeam,
       awayTeam,
-      "Nie mozna przeprowadzic symulacji meczu dla tych samych druzyn.",
+      "Nie można przeprowadzić symulacji meczu dla tych samych drużyn.",
     );
   } catch (error) {
     showToast(error.message, "error");
@@ -1090,7 +1090,7 @@ async function runMatchSimulation(button = null) {
 
   stopMatchSimulationAnimation();
   prepareMatchSimulationPanel(homeTeam, awayTeam);
-  setLoading(button, true, "Symuluje");
+  setLoading(button, true, "Symuluję");
 
   try {
     const payload = await api("/simulate-match", {
@@ -1109,7 +1109,7 @@ async function runMatchSimulation(button = null) {
     playMatchSimulation(payload);
   } catch (error) {
     els.matchSimulationSummary.className = "empty-state";
-    els.matchSimulationSummary.textContent = "Nie udalo sie uruchomic symulacji.";
+    els.matchSimulationSummary.textContent = "Nie udało się uruchomić symulacji.";
     els.matchEventFeed.innerHTML = `<p class="placeholder">${escapeHtml(error.message)}</p>`;
     showToast(error.message, "error");
   } finally {
@@ -1191,7 +1191,7 @@ function showAutocomplete(input, options = {}) {
   autocomplete.activeIndex = autocomplete.options.length ? 0 : -1;
 
   if (!autocomplete.options.length) {
-    autocomplete.menu.innerHTML = `<div class="autocomplete-empty">Brak druzyn</div>`;
+    autocomplete.menu.innerHTML = `<div class="autocomplete-empty">Brak drużyn</div>`;
     autocomplete.menu.style.pointerEvents = "none";
   } else {
     autocomplete.menu.style.pointerEvents = "auto";
@@ -1318,9 +1318,9 @@ function resetGroupSimulationResults() {
   state.latestGroupSummary = null;
   state.latestGroupPairings = null;
   els.groupSummary.className = "empty-state";
-  els.groupSummary.textContent = "Brak wynikow symulacji.";
+  els.groupSummary.textContent = "Brak wyników symulacji.";
   els.thirdPlaceSummary.className = "empty-state";
-  els.thirdPlaceSummary.textContent = "Uruchom symulacje grup.";
+  els.thirdPlaceSummary.textContent = "Uruchom symulację grup.";
   els.showGroupBracket.disabled = true;
   els.groupBracketPanel.hidden = true;
   els.groupBracketPreview.className = "empty-state";
@@ -1456,7 +1456,7 @@ function getBestThirdPlaceRows(summaryRows) {
 function renderThirdPlaceSummary(summaryRows) {
   if (!summaryRows || !summaryRows.length) {
     els.thirdPlaceSummary.className = "empty-state";
-    els.thirdPlaceSummary.textContent = "Uruchom symulacje grup.";
+    els.thirdPlaceSummary.textContent = "Uruchom symulację grup.";
     els.showGroupBracket.disabled = true;
     return;
   }
@@ -1473,10 +1473,10 @@ function renderThirdPlaceSummary(summaryRows) {
       <thead>
         <tr>
           <th class="rank-cell">#</th>
-          <th>Druzyna</th>
+          <th>Drużyna</th>
           <th>Grupa</th>
           <th>Awans</th>
-          <th>Srednie pkt</th>
+          <th>Średnie pkt</th>
         </tr>
       </thead>
       <tbody>
@@ -1506,7 +1506,7 @@ function renderGroupTables(summaryRows = state.latestGroupSummary) {
 
   if (groups.size === 0) {
     els.groupTables.className = "empty-state";
-    els.groupTables.textContent = "Brak druzyn w grupach.";
+    els.groupTables.textContent = "Brak drużyn w grupach.";
     return;
   }
 
@@ -1525,7 +1525,7 @@ function renderGroupTables(summaryRows = state.latestGroupSummary) {
             <thead>
               <tr>
                 <th class="rank-cell">#</th>
-                <th>Druzyna</th>
+                <th>Drużyna</th>
                 ${hasSummary ? "<th>Awans</th><th>Pkt</th>" : ""}
               </tr>
             </thead>
@@ -1544,7 +1544,7 @@ function renderGroupTables(summaryRows = state.latestGroupSummary) {
                           type="button"
                           data-group="${escapeAttr(row.group)}"
                           data-team="${escapeAttr(row.team)}"
-                          title="Zmien ${escapeAttr(row.team)}"
+                          title="Zmień ${escapeAttr(row.team)}"
                         >
                           ${teamInline(row.team)}
                         </button>
@@ -1573,7 +1573,7 @@ function getTeamFromDirectSlot(rankedGroups, slot) {
   const selected = rows?.find((row) => row.group_position === position);
 
   if (!selected) {
-    throw new Error(`Brak druzyny dla slotu ${slot}`);
+    throw new Error(`Brak drużyny dla slotu ${slot}`);
   }
 
   return selected.team;
@@ -1620,7 +1620,7 @@ function findValidThirdPlaceAssignment(thirdPlaceRows, thirdPlaceSlots) {
   }
 
   if (!backtrack(0)) {
-    throw new Error("Nie udalo sie przypisac trzecich miejsc do drabinki.");
+    throw new Error("Nie udało się przypisać trzecich miejsc do drabinki.");
   }
 
   return assignment;
@@ -1631,7 +1631,7 @@ function createGroupStageBracketPairings(summaryRows) {
   const bestThirdPlaces = getBestThirdPlaceRows(summaryRows);
 
   if (bestThirdPlaces.length < 8) {
-    throw new Error("Za malo trzecich miejsc do zbudowania drabinki.");
+    throw new Error("Za mało trzecich miejsc do zbudowania drabinki.");
   }
 
   const thirdPlaceSlots = R32_SLOTS
@@ -1661,8 +1661,8 @@ function renderGroupBracketPreview(pairings) {
   renderGroupBracketPreviewInto(
     els.groupBracketPreview,
     pairings,
-    "Podglad ukladu fazy pucharowej po wynikach grup",
-    "Bez symulacji zwyciezcow kolejnych rund",
+    "Podgląd układu fazy pucharowej po wynikach grup",
+    "Bez symulacji zwycięzców kolejnych rund",
   );
 }
 
@@ -1671,8 +1671,8 @@ function renderWorldCupGroupBracketPreview(pairings) {
   renderGroupBracketPreviewInto(
     els.bracketTree,
     pairings,
-    "Podglad drabinki z zakladki Grupy",
-    "Uruchom symulacje turnieju, aby zobaczyc wyniki",
+    "Podgląd drabinki z zakładki Grupy",
+    "Uruchom symulację turnieju, aby zobaczyć wyniki",
   );
 }
 
@@ -1682,7 +1682,7 @@ function getLatestGroupQualifierPairings() {
   }
 
   if (!state.latestGroupSummary || !state.latestGroupSummary.length) {
-    throw new Error("Najpierw uruchom symulacje grup, aby wybrac kwalifikantow.");
+    throw new Error("Najpierw uruchom symulację grup, aby wybrać kwalifikantów.");
   }
 
   state.latestGroupPairings = createGroupStageBracketPairings(state.latestGroupSummary);
@@ -1724,8 +1724,8 @@ function buildGroupBracketPreviewMatches(pairings) {
   for (const [matchId, homeSource, awaySource] of GROUP_BRACKET_MAPPINGS) {
     matchById[matchId] = {
       match_id: matchId,
-      home_team: `Zwyciezca ${homeSource}`,
-      away_team: `Zwyciezca ${awaySource}`,
+      home_team: `Zwycięzca ${homeSource}`,
+      away_team: `Zwycięzca ${awaySource}`,
       home_placeholder: true,
       away_placeholder: true,
     };
@@ -1754,8 +1754,8 @@ function renderWorldCupBracketLayout(force = false) {
   renderGroupBracketPreviewInto(
     els.bracketTree,
     placeholderPairings,
-    "Rozklad drabinki turniejowej",
-    "Sloty zostana uzupelnione po symulacji grup lub turnieju",
+    "Rozkład drabinki turniejowej",
+    "Sloty zostaną uzupełnione po symulacji grup lub turnieju",
   );
   els.bracketTree.dataset.layoutOnly = "true";
 }
@@ -1795,7 +1795,7 @@ function renderGroupPreviewMatch(match, side = "left") {
 
 function renderGroupFinalPreview(match) {
   return `
-    <article class="group-final-card" aria-label="Final mistrzostw swiata">
+    <article class="group-final-card" aria-label="Finał mistrzostw świata">
       <div class="group-final-icon" aria-hidden="true">
         <svg viewBox="0 0 64 64" focusable="false">
           <path d="M22 9h20v8h10v8c0 9-5 16-14 18v6h8v7H18v-7h8v-6c-9-2-14-9-14-18v-8h10V9Zm6 6v20c0 4 2 7 4 7s4-3 4-7V15h-8Zm14 8v12c3-2 5-6 5-10v-2h-5Zm-25 0v2c0 4 2 8 5 10V23h-5Z" />
@@ -1803,8 +1803,8 @@ function renderGroupFinalPreview(match) {
       </div>
       <div class="group-final-heading">
         <span>${escapeHtml(match.match_id)}</span>
-        <strong>Final mistrzostw swiata</strong>
-        <small>Zwyciezcy polfinalow spotkaja sie tutaj</small>
+        <strong>Finał mistrzostw świata</strong>
+        <small>Zwycięzcy półfinałów spotkają się tutaj</small>
       </div>
       <div class="group-final-teams">
         ${renderGroupFinalTeam(match.home_team)}
@@ -1847,7 +1847,7 @@ function renderGroupPreviewTeam(team, isPlaceholder = false, slot = "") {
 function renderSummaryTable(target, rows, columns, maxRows = 32) {
   if (!rows || rows.length === 0) {
     target.className = "empty-state";
-    target.textContent = "Brak wynikow.";
+    target.textContent = "Brak wyników.";
     return;
   }
 
@@ -1924,7 +1924,7 @@ function renderBracket(knockoutResults) {
       ${renderBracketSide("left", matchById)}
       <section class="bracket-center">
         <div class="champion-card">
-          <span>Winner</span>
+          <span>Zwycięzca</span>
           ${champion ? teamInline(champion) : ""}
         </div>
         ${finalMatch ? renderBracketMatch(finalMatch, "center") : ""}
@@ -2008,9 +2008,9 @@ async function loadInitialData() {
     state.defaultMatches = matchesPayload.matches || [];
     renderTeamsList(state.teams);
     renderGroupRows(state.defaultMatches);
-    els.statusText.textContent = `Model gotowy - ${state.teams.length} druzyn`;
+    els.statusText.textContent = `Model gotowy - ${state.teams.length} drużyn`;
   } catch (error) {
-    els.statusText.textContent = "Blad ladowania";
+    els.statusText.textContent = "Błąd ładowania";
     showToast(error.message, "error");
   }
 }
@@ -2096,7 +2096,7 @@ els.matchForm.addEventListener("submit", async (event) => {
     validateDistinctMatchTeams(
       homeTeam,
       awayTeam,
-      "Nie mozna przeprowadzic predykcji meczu dla tych samych druzyn.",
+      "Nie można przeprowadzić predykcji meczu dla tych samych drużyn.",
     );
   } catch (error) {
     showToast(error.message, "error");
@@ -2104,7 +2104,7 @@ els.matchForm.addEventListener("submit", async (event) => {
     return;
   }
 
-  setLoading(button, true, "Licze");
+  setLoading(button, true, "Liczę");
   try {
     const payload = await api("/predict-match", {
       method: "POST",
@@ -2125,7 +2125,7 @@ els.matchForm.addEventListener("submit", async (event) => {
 
 els.loadDefaultGroups.addEventListener("click", () => {
   renderGroupRows(state.defaultMatches);
-  showToast("Zaladowano domyslne mecze grupowe");
+  showToast("Załadowano domyślne mecze grupowe");
 });
 
 els.groupTables.addEventListener("click", (event) => {
@@ -2160,23 +2160,23 @@ els.teamEditorForm.addEventListener("submit", (event) => {
   const { group, team: oldTeam } = state.editTarget;
 
   if (!newTeam) {
-    showToast("Wybierz druzyne", "error");
+    showToast("Wybierz drużynę", "error");
     return;
   }
 
   if (!state.teams.includes(newTeam)) {
-    showToast("Tej druzyny nie ma w danych rankingowych", "error");
+    showToast("Tej drużyny nie ma w danych rankingowych", "error");
     return;
   }
 
   if (teamExistsInAnotherGroup(newTeam, oldTeam)) {
     const existingGroup = getTeamGroup(newTeam);
-    showToast(`Ta druzyna jest juz w grupie ${existingGroup}`, "error");
+    showToast(`Ta drużyna jest już w grupie ${existingGroup}`, "error");
     return;
   }
 
   if (!sameTeamName(newTeam, oldTeam) && groupHasTeam(group, newTeam)) {
-    showToast("Ta druzyna juz jest w tej grupie", "error");
+    showToast("Ta drużyna już jest w tej grupie", "error");
     return;
   }
 
@@ -2201,7 +2201,7 @@ els.groupSimulationForm.addEventListener("submit", async (event) => {
     return;
   }
 
-  setLoading(button, true, "Symuluje");
+  setLoading(button, true, "Symuluję");
   try {
     const payload = await api("/simulate-group-stage", {
       method: "POST",
@@ -2220,7 +2220,7 @@ els.groupSimulationForm.addEventListener("submit", async (event) => {
       els.groupSummary,
       payload.summary || [],
       [
-        { label: "Druzyna", key: "qualified_%", bar: true },
+        { label: "Drużyna", key: "qualified_%", bar: true },
         { label: "Grupa", key: "group" },
         { label: "Awans", key: "qualified_%", percent: true },
         { label: "1. miejsce", key: "group_winner_%", percent: true },
@@ -2237,7 +2237,7 @@ els.groupSimulationForm.addEventListener("submit", async (event) => {
 
 els.showGroupBracket.addEventListener("click", () => {
   if (!state.latestGroupSummary || !state.latestGroupSummary.length) {
-    showToast("Najpierw uruchom symulacje grup", "error");
+    showToast("Najpierw uruchom symulację grup", "error");
     return;
   }
 
@@ -2255,7 +2255,7 @@ els.showGroupBracket.addEventListener("click", () => {
 
 els.runTournamentFromGroups.addEventListener("click", () => {
   if (!state.latestGroupSummary || !state.latestGroupSummary.length) {
-    showToast("Najpierw uruchom symulacje grup", "error");
+    showToast("Najpierw uruchom symulację grup", "error");
     return;
   }
 
@@ -2263,7 +2263,7 @@ els.runTournamentFromGroups.addEventListener("click", () => {
     const pairings = getLatestGroupQualifierPairings();
     renderWorldCupGroupBracketPreview(pairings);
     els.worldCupSummary.className = "empty-state";
-    els.worldCupSummary.textContent = "Uruchom symulacje turnieju dla aktualnej drabinki.";
+    els.worldCupSummary.textContent = "Uruchom symulację turnieju dla aktualnej drabinki.";
     els.useEditedGroups.checked = true;
     activateView("worldCupView");
     els.worldCupForm.scrollIntoView({
@@ -2283,7 +2283,7 @@ els.worldCupForm.addEventListener("submit", async (event) => {
 
   if (useGroupQualifiers) {
     if (!state.latestGroupSummary || !state.latestGroupSummary.length) {
-      showToast("Najpierw uruchom symulacje grup, aby wybrac kwalifikantow", "error");
+      showToast("Najpierw uruchom symulację grup, aby wybrać kwalifikantów", "error");
       return;
     }
 
@@ -2296,7 +2296,7 @@ els.worldCupForm.addEventListener("submit", async (event) => {
     }
   }
 
-  setLoading(button, true, "Symuluje");
+  setLoading(button, true, "Symuluję");
   try {
     const payload = await api("/simulate-world-cup", {
       method: "POST",
@@ -2321,11 +2321,9 @@ els.worldCupForm.addEventListener("submit", async (event) => {
       els.worldCupSummary,
       worldCupSummaryRows,
       [
-        { label: "Druzyna", key: "champion_%", bar: true },
+        { label: "Drużyna", key: "champion_%", bar: true },
         { label: "Mistrz", key: "champion_%", percent: true },
-        { label: "Final", key: "final_%", percent: true },
-        { label: "1/2", key: "semi_final_%", percent: true },
-        { label: "1/4", key: "quarter_final_%", percent: true },
+        { label: "Finał", key: "final_%", percent: true },
       ],
       worldCupSummaryRows.length,
     );
