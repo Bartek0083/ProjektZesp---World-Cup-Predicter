@@ -10,6 +10,8 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from match_engine import MatchMode, TournamentSettings, simulate_match
+from match_stats import aggregate_timeline_stats
+from predictions import compare_real_vs_simulation, compute_match_preview
 from sportsdb_client import (
     get_match_details,
     get_match_timeline,
@@ -25,7 +27,7 @@ from teams_data import list_teams
 
 FRONTEND_DIR = Path(__file__).resolve().parent / "frontend"
 
-app = FastAPI(title="World Cup — Symulacja Meczu", version="1.0.0")
+app = FastAPI(title="World Cup — Symulacja Meczu", version="2.0.0")
 app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
 
 
@@ -114,6 +116,91 @@ def matches_upcoming(
     }
 
 
+class CompareRequest(BaseModel):
+    seed: int | None = None
+    mode: str = Field(default="friendly", pattern="^(friendly|tournament)$")
+    neutral_venue: bool = True
+    extra_time: bool = True
+    golden_goal: bool = False
+    penalties_after_90: bool = False
+
+
+@app.get("/match-preview")
+def match_preview(
+    home: str = Query(..., min_length=1),
+    away: str = Query(..., min_length=1),
+    neutral: bool = Query(default=True),
+) -> dict:
+    """Podgląd siły drużyn i szacunkowe prawdopodobieństwa przed symulacją."""
+    home_name = resolve_simulation_team_name(home) or home.strip()
+    away_name = resolve_simulation_team_name(away) or away.strip()
+    return compute_match_preview(home_name, away_name, neutral_venue=neutral)
+
+
+@app.get("/matches/{event_id}/stats")
+def match_stats(event_id: str) -> dict:
+    """Statystyki z timeline (bramki, kartki, zmiany, szacowane posiadanie)."""
+    match = get_match_details(event_id, include_timeline=False)
+    if not match:
+        raise HTTPException(status_code=404, detail=f"Nie znaleziono meczu: {event_id}")
+    events, timeline_source = get_match_timeline(event_id, match=match)
+    stats = aggregate_timeline_stats(events, match["home_team"], match["away_team"])
+    return {
+        "event_id": event_id,
+        "stats": stats,
+        "timeline_source": timeline_source,
+        "event_count": len(events),
+    }
+
+
+@app.post("/matches/{event_id}/compare-simulation")
+def compare_simulation(event_id: str, request: CompareRequest) -> dict:
+    """Porównanie rzeczywistego wyniku z naszą symulacją."""
+    match = get_match_details(event_id, include_timeline=False)
+    if not match:
+        raise HTTPException(status_code=404, detail=f"Nie znaleziono meczu: {event_id}")
+
+    sim_home = resolve_simulation_team_name(match["home_team"])
+    sim_away = resolve_simulation_team_name(match["away_team"])
+    if not sim_home or not sim_away:
+        raise HTTPException(status_code=400, detail="Brak drużyn do symulacji")
+
+    settings = TournamentSettings(
+        extra_time=request.extra_time,
+        golden_goal=request.golden_goal,
+        penalties_after_90=request.penalties_after_90,
+    )
+    simulation = simulate_match(
+        home_team=sim_home,
+        away_team=sim_away,
+        mode=MatchMode(request.mode),
+        settings=settings if request.mode == "tournament" else None,
+        seed=request.seed,
+        neutral_venue=request.neutral_venue,
+    )
+
+    real_h = int(match.get("home_score") or 0)
+    real_a = int(match.get("away_score") or 0)
+    comparison = compare_real_vs_simulation(
+        real_h, real_a,
+        simulation.home_score_final, simulation.away_score_final,
+    )
+    preview = compute_match_preview(sim_home, sim_away, neutral_venue=request.neutral_venue)
+
+    events, timeline_source = get_match_timeline(event_id, match=match)
+    stats = aggregate_timeline_stats(events, match["home_team"], match["away_team"])
+
+    return {
+        "match": match,
+        "preview": preview,
+        "real_timeline": events,
+        "real_stats": stats,
+        "timeline_source": timeline_source,
+        "simulation": simulation.to_dict(),
+        "comparison": comparison,
+    }
+
+
 @app.get("/matches/{event_id}")
 def match_details(event_id: str, timeline: bool = Query(default=False)) -> dict:
     """Szczegóły meczu; ?timeline=1 dołącza przebieg."""
@@ -122,8 +209,12 @@ def match_details(event_id: str, timeline: bool = Query(default=False)) -> dict:
         raise HTTPException(status_code=404, detail=f"Nie znaleziono meczu: {event_id}")
     sim_home = resolve_simulation_team_name(match["home_team"])
     sim_away = resolve_simulation_team_name(match["away_team"])
+    preview = None
+    if sim_home and sim_away:
+        preview = compute_match_preview(sim_home, sim_away, neutral_venue=True)
     return {
         "match": match,
+        "preview": preview,
         "simulation_teams": {
             "home": sim_home,
             "away": sim_away,

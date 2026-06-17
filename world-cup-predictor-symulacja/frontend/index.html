@@ -184,9 +184,27 @@
       <div class="api-detail-bar" id="apiMatchDetail">
         <span class="api-detail-empty">Wybierz mecz z listy.</span>
       </div>
-      <button type="button" class="btn-simulate api-sim-btn" id="simulateFromApiBtn" hidden>
-        Symuluj
-      </button>
+
+      <div class="preview-panel" id="apiPreviewPanel" hidden></div>
+      <div class="stats-panel" id="apiStatsPanel" hidden></div>
+
+      <div class="api-actions">
+        <label class="api-sim-mode">
+          Tryb
+          <select id="apiSimMode">
+            <option value="friendly">Towarzyski</option>
+            <option value="tournament">Turniejowy</option>
+          </select>
+        </label>
+        <button type="button" class="btn-simulate api-sim-btn" id="simulateFromApiBtn" hidden>
+          Symuluj mecz
+        </button>
+        <button type="button" class="btn-secondary" id="compareSimBtn" hidden>
+          Porównaj z rzeczywistością
+        </button>
+      </div>
+
+      <div class="compare-panel" id="apiComparePanel" hidden></div>
       <div class="scorebug" id="apiScoreboard">
         <div class="scorebug-team home">
           <img class="scorebug-badge" id="apiBoardHomeBadge" alt="" hidden />

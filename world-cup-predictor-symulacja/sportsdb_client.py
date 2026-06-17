@@ -245,15 +245,17 @@ def get_team_by_name(name: str) -> dict[str, Any] | None:
 
 
 def resolve_rating(team_name: str) -> dict[str, float] | None:
-    """Rating do symulacji — z cache TheSportsDB lub None."""
+    """Rating do symulacji — z cache TheSportsDB, TEAM_RATINGS lub None."""
     team = get_team_by_name(team_name)
-    if not team:
-        return None
-    return {
-        "attack": float(team["attack"]),
-        "defense": float(team["defense"]),
-        "fifa_points": float(team.get("fifa_points", team["rating"] * 21)),
-    }
+    if team:
+        return {
+            "attack": float(team["attack"]),
+            "defense": float(team["defense"]),
+            "fifa_points": float(team.get("fifa_points", team["rating"] * 21)),
+        }
+    if team_name in TEAM_RATINGS:
+        return TEAM_RATINGS[team_name]
+    return None
 
 
 # --- Mecze z TheSportsDB ---
@@ -289,12 +291,16 @@ def _normalize_team_name(name: str) -> str:
 
 
 def resolve_simulation_team_name(api_name: str) -> str | None:
-    """Mapuje nazwę z API na nazwę znaną symulatorowi."""
+    """Mapuje nazwę z API na nazwę używaną w symulatorze."""
+    if not api_name or not str(api_name).strip():
+        return None
+
     canonical = _normalize_team_name(api_name)
     if get_team_by_name(canonical):
         return canonical
     if canonical in TEAM_RATINGS:
         return canonical
+
     canonical_l = canonical.lower()
     for team in get_teams():
         if team["name"].lower() == canonical_l:
@@ -302,7 +308,13 @@ def resolve_simulation_team_name(api_name: str) -> str | None:
         country = (team.get("country") or "").lower()
         if country and country == canonical_l:
             return team["name"]
-    return None
+        # częściowe dopasowanie (np. „West Ham United” ↔ cache)
+        name_l = team["name"].lower()
+        if canonical_l in name_l or name_l in canonical_l:
+            return team["name"]
+
+    # Obejście: dowolna drużyna z API — symulacja z domyślnym ratingiem klubu
+    return canonical
 
 
 def _event_to_match(raw: dict[str, Any], source: str = "thesportsdb") -> dict[str, Any]:

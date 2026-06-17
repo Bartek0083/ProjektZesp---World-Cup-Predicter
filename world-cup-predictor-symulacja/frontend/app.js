@@ -55,6 +55,11 @@ const els = {
   apiGoalMarkers: document.getElementById("apiGoalMarkers"),
   apiEventFeed: document.getElementById("apiEventFeed"),
   apiMatchDetail: document.getElementById("apiMatchDetail"),
+  apiPreviewPanel: document.getElementById("apiPreviewPanel"),
+  apiStatsPanel: document.getElementById("apiStatsPanel"),
+  apiComparePanel: document.getElementById("apiComparePanel"),
+  apiSimMode: document.getElementById("apiSimMode"),
+  compareSimBtn: document.getElementById("compareSimBtn"),
   simulateFromApiBtn: document.getElementById("simulateFromApiBtn"),
 };
 
@@ -580,8 +585,8 @@ function updateApiScoreboard(match, event = null) {
 function renderApiTimelinePlaceholder(match, timelinePayload, simulationTeams) {
   const canSim = simulationTeams?.can_simulate;
   const simHint = canSim
-    ? "Użyj przycisku <strong>Symuluj</strong> poniżej, aby wygenerować przebieg."
-    : "Te drużyny nie są dostępne w symulatorze.";
+    ? "Kliknij <strong>Symuluj</strong> — wygenerujemy przebieg meczu (API nie ma relacji przed gwizdkiem)."
+    : "Brak nazw drużyn — nie można uruchomić symulacji.";
 
   if (match.is_upcoming || timelinePayload?.is_upcoming) {
     const when = [formatDatePL(match.date), formatMatchTime(match.time)].filter(Boolean).join(" · ");
@@ -589,7 +594,6 @@ function renderApiTimelinePlaceholder(match, timelinePayload, simulationTeams) {
       <div class="timeline-placeholder upcoming">
         <p><strong>Mecz jeszcze się nie rozpoczął.</strong></p>
         <p>${when ? `Zaplanowany: ${escapeHtml(when)}.` : "Status: zaplanowany."}</p>
-        <p>TheSportsDB nie udostępnia przebiegu przed rozpoczęciem meczu.</p>
         <p>${simHint}</p>
       </div>
     `;
@@ -647,7 +651,90 @@ function playApiTimelineAnimation(match, events, timelineSource) {
   }
 }
 
-function renderApiMatchDetail(match, simulationTeams) {
+function renderMatchPreview(preview) {
+  if (!preview) {
+    els.apiPreviewPanel.hidden = true;
+    return;
+  }
+  const maxStr = Math.max(preview.home.strength, preview.away.strength, 1);
+  const homePct = Math.round((preview.home.strength / maxStr) * 100);
+  const awayPct = Math.round((preview.away.strength / maxStr) * 100);
+  const p = preview.probabilities;
+  const fav = preview.favorite
+    ? `<span class="preview-xg">Faworyt: <strong>${escapeHtml(preview.favorite)}</strong></span>`
+    : `<span class="preview-xg">Wyrównany mecz</span>`;
+
+  els.apiPreviewPanel.hidden = false;
+  els.apiPreviewPanel.innerHTML = `
+    <p class="preview-title">Analiza przed meczem</p>
+    <div class="preview-bars">
+      <div class="strength-row">
+        <span>${escapeHtml(preview.home_team)}</span>
+        <div class="strength-bar"><div class="strength-fill" style="width:${homePct}%"></div></div>
+        <span>${preview.home.strength}</span>
+      </div>
+      <div class="strength-row">
+        <span>${escapeHtml(preview.away_team)}</span>
+        <div class="strength-bar"><div class="strength-fill away" style="width:${awayPct}%"></div></div>
+        <span>${preview.away.strength}</span>
+      </div>
+    </div>
+    <div class="preview-probs">
+      <span class="prob-chip">1 <strong>${p.home_win}%</strong></span>
+      <span class="prob-chip">X <strong>${p.draw}%</strong></span>
+      <span class="prob-chip">2 <strong>${p.away_win}%</strong></span>
+    </div>
+    <p class="preview-xg">Szac. xG: ${preview.expected_score} · ${fav}</p>
+  `;
+}
+
+function renderMatchStats(stats, homeTeam, awayTeam) {
+  if (!stats) {
+    els.apiStatsPanel.hidden = true;
+    return;
+  }
+  els.apiStatsPanel.hidden = false;
+  const g = stats.goals;
+  const poss = stats.possession_estimate;
+  els.apiStatsPanel.innerHTML = `
+    <div class="stat-box"><span class="stat-val">${g.home}:${g.away}</span>Bramki</div>
+    <div class="stat-box"><span class="stat-val">${poss.home}%</span>Posiadanie*</div>
+    <div class="stat-box"><span class="stat-val">${stats.cards.yellow.home + stats.cards.yellow.away}</span>Żółte</div>
+    <div class="stat-box"><span class="stat-val">${stats.substitutions.home + stats.substitutions.away}</span>Zmiany</div>
+  `;
+}
+
+function renderComparePanel(data) {
+  if (!data) {
+    els.apiComparePanel.hidden = true;
+    return;
+  }
+  const c = data.comparison;
+  const verdictClass = c.exact_score_match ? "" : c.outcome_match ? "" : " miss";
+  const verdict = c.exact_score_match
+    ? "Trafiony dokładny wynik!"
+    : c.outcome_match
+      ? "Trafiony wynik (1/X/2) — inny bilans bramek"
+      : "Inny wynik niż w rzeczywistości";
+
+  els.apiComparePanel.hidden = false;
+  els.apiComparePanel.innerHTML = `
+    <p class="preview-title" style="color:#aaa;margin:0">Rzeczywistość vs symulacja</p>
+    <div class="compare-grid">
+      <div class="compare-card">
+        <div>Rzeczywistość (API)</div>
+        <div class="compare-score">${escapeHtml(c.real_score)}</div>
+      </div>
+      <div class="compare-card sim">
+        <div>Nasza symulacja</div>
+        <div class="compare-score">${escapeHtml(c.simulated_score)}</div>
+      </div>
+    </div>
+    <div class="compare-verdict${verdictClass}">${verdict}</div>
+  `;
+}
+
+function renderApiMatchDetail(match, simulationTeams, preview) {
   const canSim = simulationTeams?.can_simulate;
   const status = match.is_live
     ? "Na żywo"
@@ -667,7 +754,10 @@ function renderApiMatchDetail(match, simulationTeams) {
   const showSimBtn = match.is_upcoming || (!match.is_finished && !match.is_live);
   els.simulateFromApiBtn.hidden = !showSimBtn;
   els.simulateFromApiBtn.disabled = !canSim;
-  els.simulateFromApiBtn.title = canSim ? "" : "Drużyny niedostępne w symulatorze";
+  els.compareSimBtn.hidden = !(match.is_finished && canSim);
+  els.compareSimBtn.disabled = !canSim;
+
+  renderMatchPreview(preview);
 }
 
 function formatMatchesSource(count, label) {
@@ -718,18 +808,26 @@ async function selectMatch(eventId) {
     state.selectedMatch = state.matches.find((m) => m.id === eventId) || match;
     state.selectedMatchDetail = detailPayload;
     renderMatchList(state.matches);
-    renderApiMatchDetail(match, detailPayload.simulation_teams);
+    renderApiMatchDetail(match, detailPayload.simulation_teams, detailPayload.preview);
     updateApiScoreboard(match);
+    els.apiComparePanel.hidden = true;
 
     if (match.is_finished || match.is_live) {
       const timelinePayload = await api(`/matches/${encodeURIComponent(eventId)}/timeline`);
       const events = timelinePayload.events || [];
+      try {
+        const statsPayload = await api(`/matches/${encodeURIComponent(eventId)}/stats`);
+        renderMatchStats(statsPayload.stats, match.home_team, match.away_team);
+      } catch {
+        renderMatchStats(null);
+      }
       if (events.length) {
         playApiTimelineAnimation(match, events, timelinePayload.timeline_source);
       } else {
         renderApiTimelinePlaceholder(match, timelinePayload, detailPayload.simulation_teams);
       }
     } else {
+      renderMatchStats(null);
       renderApiTimelinePlaceholder(match, { is_upcoming: true }, detailPayload.simulation_teams);
     }
   } catch (error) {
@@ -752,16 +850,17 @@ async function simulateFromApiMatch() {
   els.simulateFromApiBtn.textContent = "Symuluję…";
 
   try {
+    const mode = els.apiSimMode.value;
     const payload = await api("/simulate-match", {
       method: "POST",
       body: JSON.stringify({
         home_team: home,
         away_team: away,
-        mode: "friendly",
+        mode,
         neutral_venue: true,
         extra_time: true,
         golden_goal: false,
-        penalties_after_90: false,
+        penalties_after_90: mode === "tournament",
         seed: Math.floor(Math.random() * 100000),
       }),
     });
@@ -775,7 +874,7 @@ async function simulateFromApiMatch() {
       is_finished: true,
       is_live: false,
     };
-    renderApiMatchDetail(simMatch, detail.simulation_teams);
+    renderApiMatchDetail(simMatch, detail.simulation_teams, detail.preview);
     els.apiMatchDetail.querySelector(".api-detail-score").textContent =
       `${payload.home_score_final}:${payload.away_score_final}`;
 
@@ -793,7 +892,65 @@ async function simulateFromApiMatch() {
     showToast(error.message, true);
   } finally {
     els.simulateFromApiBtn.disabled = !detail.simulation_teams.can_simulate;
-    els.simulateFromApiBtn.textContent = "Symuluj";
+    els.simulateFromApiBtn.textContent = "Symuluj mecz";
+  }
+}
+
+async function compareWithSimulation() {
+  const detail = state.selectedMatchDetail;
+  const match = state.selectedMatch;
+  if (!match?.id || !detail?.simulation_teams?.can_simulate) {
+    showToast("Wybierz rozegrany mecz", true);
+    return;
+  }
+
+  els.compareSimBtn.disabled = true;
+  els.compareSimBtn.textContent = "Porównuję…";
+
+  try {
+    const data = await api(`/matches/${encodeURIComponent(match.id)}/compare-simulation`, {
+      method: "POST",
+      body: JSON.stringify({
+        mode: els.apiSimMode.value,
+        neutral_venue: true,
+        extra_time: true,
+        penalties_after_90: els.apiSimMode.value === "tournament",
+        seed: Math.floor(Math.random() * 100000),
+      }),
+    });
+    renderComparePanel(data);
+    renderMatchPreview(data.preview);
+
+    const sim = data.simulation;
+    playAnimationOn({
+      result: sim,
+      feedEl: els.apiEventFeed,
+      markersEl: els.apiGoalMarkers,
+      onUpdate: (event) => {
+        const simMatch = {
+          ...match,
+          home_score: event.home_score,
+          away_score: event.away_score,
+        };
+        updateApiScoreboard(simMatch, event);
+      },
+      onComplete: () => {
+        updateApiScoreboard({
+          ...match,
+          home_score: sim.home_score_final,
+          away_score: sim.away_score_final,
+        });
+      },
+      displaySet: DISPLAY_EVENTS,
+      maxMinute: 120,
+      timerKey: "apiAnimationTimer",
+    });
+    showToast("Porównanie gotowe — animacja to nasza symulacja");
+  } catch (error) {
+    showToast(error.message, true);
+  } finally {
+    els.compareSimBtn.disabled = false;
+    els.compareSimBtn.textContent = "Porównaj z rzeczywistością";
   }
 }
 
@@ -895,6 +1052,7 @@ els.matchDate.addEventListener("keydown", (event) => {
 
 els.loadUpcomingBtn.addEventListener("click", loadUpcomingMatches);
 els.simulateFromApiBtn.addEventListener("click", simulateFromApiMatch);
+els.compareSimBtn.addEventListener("click", compareWithSimulation);
 
 els.matchList.addEventListener("click", (event) => {
   const item = event.target.closest(".match-item");

@@ -9,7 +9,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY api.py match_engine.py teams_data.py sportsdb_client.py ./
+COPY api.py match_engine.py teams_data.py sportsdb_client.py predictions.py match_stats.py ./
 COPY frontend ./frontend
 COPY data ./data
 

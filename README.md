@@ -15,6 +15,8 @@ World Cup Predictor to aplikacja webowa do analizowania reprezentacyjnych meczó
 - [API](#api)
 - [Struktura Projektu](#struktura-projektu)
 - [Dane I Artefakty](#dane-i-artefakty)
+- [Moduł Rozszerzony](#moduł-rozszerzony-jakub-szych)
+- [Sprawozdanie](#sprawozdanie)
 
 ## Cel Projektu
 
@@ -296,3 +298,28 @@ Aplikacja jest zintegrowana w jednym backendzie i jednym frontendzie. Moduł sym
 ```text
 http://127.0.0.1:8011/
 ```
+
+## Moduł Rozszerzony (Jakub Szych)
+
+W podfolderze `world-cup-predictor-symulacja/` znajduje się rozszerzona wersja modułu symulacji:
+
+- integracja **TheSportsDB** (mecze na dziś, timeline, cache),
+- analiza Poissona (`predictions.py`) — xG, 1/X/2,
+- porównanie symulacji z rzeczywistością (`match_stats.py`),
+- **27 testów** jednostkowych, wykresy (`generate_charts.py`),
+- samodzielne API na porcie **8010**.
+
+**Sprawozdanie zespołowe:** [`world-cup-predictor-symulacja/SPRAWOZDANIE.md`](world-cup-predictor-symulacja/SPRAWOZDANIE.md)
+
+```powershell
+cd world-cup-predictor-symulacja
+python -m uvicorn api:app --reload --port 8010
+```
+
+## Sprawozdanie
+
+Pełne sprawozdanie z projektu zespołowego (sylabus + technika + wyniki testów):
+
+**[`world-cup-predictor-symulacja/SPRAWOZDANIE.md`](world-cup-predictor-symulacja/SPRAWOZDANIE.md)**
+
+Krótki start modułu: [`world-cup-predictor-symulacja/README.md`](world-cup-predictor-symulacja/README.md)

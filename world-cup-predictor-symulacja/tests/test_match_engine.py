@@ -78,9 +78,11 @@ class TestMatchEngine(unittest.TestCase):
             self.assertGreaterEqual(event.home_score, 0)
             self.assertGreaterEqual(event.away_score, 0)
 
-    def test_unknown_team_raises(self) -> None:
-        with self.assertRaises(ValueError):
-            simulate_match("Nieistniejąca", "Poland", seed=1)
+    def test_unknown_club_uses_default_rating(self) -> None:
+        result = simulate_match("Udinese", "Como", mode=MatchMode.FRIENDLY, seed=1)
+        self.assertEqual(result.home_team, "Udinese")
+        self.assertEqual(result.away_team, "Como")
+        self.assertGreater(len(result.events), 2)
 
     def test_reproducible_with_seed(self) -> None:
         a = simulate_match("Argentina", "France", mode=MatchMode.FRIENDLY, seed=777)

@@ -2,6 +2,13 @@
 
 from __future__ import annotations
 
+# Domyślny rating dla klubów / drużyn z API spoza listy reprezentacji
+DEFAULT_UNKNOWN_TEAM_RATING: dict[str, float] = {
+    "attack": 72.0,
+    "defense": 71.0,
+    "fifa_points": 1500.0,
+}
+
 TEAM_RATINGS: dict[str, dict[str, float]] = {
     "Argentina": {"attack": 88, "defense": 85, "fifa_points": 1855},
     "France": {"attack": 87, "defense": 86, "fifa_points": 1840},
@@ -45,6 +52,18 @@ def list_teams() -> list[str]:
     return sorted(TEAM_RATINGS.keys())
 
 
+def _rating_from_name(team: str) -> dict[str, float]:
+    """Unikalny rating dla klubu spoza bazy — stabilny hash nazwy."""
+    h = sum(ord(c) for c in team.strip().lower()) % 16
+    attack = round(65.0 + h * 0.9, 1)
+    defense = round(64.0 + ((h + 5) % 16) * 0.85, 1)
+    return {
+        "attack": attack,
+        "defense": defense,
+        "fifa_points": round(attack * 21),
+    }
+
+
 def get_team_rating(team: str) -> dict[str, float]:
     try:
         from sportsdb_client import resolve_rating
@@ -58,4 +77,5 @@ def get_team_rating(team: str) -> dict[str, float]:
     if team in TEAM_RATINGS:
         return TEAM_RATINGS[team]
 
-    raise ValueError(f"Nieznana drużyna: {team}. Dostępne: {', '.join(list_teams()[:5])}...")
+    # Kluby i inne drużyny z TheSportsDB — rating z hash nazwy (różne siły)
+    return _rating_from_name(team)

@@ -152,6 +152,16 @@ class TestSportsdbMatches(unittest.TestCase):
     def test_resolve_simulation_team_name(self) -> None:
         self.assertEqual(sdb.resolve_simulation_team_name("Poland"), "Poland")
         self.assertEqual(sdb.resolve_simulation_team_name("USA"), "United States")
+        # kluby spoza listy reprezentacji — fallback na nazwę z API
+        self.assertEqual(sdb.resolve_simulation_team_name("Udinese"), "Udinese")
+        self.assertEqual(sdb.resolve_simulation_team_name("Como"), "Como")
+
+    def test_unknown_club_gets_default_rating(self) -> None:
+        from teams_data import get_team_rating
+
+        rating = get_team_rating("Udinese")
+        self.assertIn("attack", rating)
+        self.assertGreater(rating["attack"], 0)
 
     @patch.object(api, "get_matches_today")
     def test_api_matches_endpoint(self, mock_today: object) -> None:
